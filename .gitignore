@@ -35,3 +35,4 @@ go.work.sum
 /foo.sql
 /gormdb2struct-postgres-sample.toml
 /gormdb2struct-sqlite-sample.toml
+/generated/

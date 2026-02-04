@@ -95,18 +95,25 @@ func postgresToGorm(cfg ConversionConfig) {
 
 	g.WithJSONTagNameStrategy(func(col string) (tag string) { return strcase.ToLowerCamel(col) })
 	g.WithImportPkgPath(cfg.ImportPackagePaths...)
-	dtMaps := pgtypes.DataTypeMap()
-	for k, v := range cfg.TypeMap {
-		dtMaps[k] = func(columnType gorm.ColumnType) string { return v }
-	}
-	dtMaps["text"] = func(columnType gorm.ColumnType) string {
-		if colType, ok := columnType.ColumnType(); ok {
-			if domain, ok := cfg.DomainTypeMap[colType]; ok {
-				return domain
+
+	var dtMaps = map[string]func(columnType gorm.ColumnType) (dataType string){}
+	f := func(def string) func(columnType gorm.ColumnType) (dataType string) {
+		return func(columnType gorm.ColumnType) string {
+			if colType, ok := columnType.ColumnType(); ok {
+				if domain, ok := cfg.DomainTypeMap[colType]; ok {
+					return domain
+				}
+				if pt, ok := cfg.TypeMap[colType]; ok {
+					return pt
+				}
 			}
+			return def
 		}
-		return "string"
 	}
+	for pgTypeSTr, goTypeStr := range pgtypes.PgTypeMap {
+		dtMaps[pgTypeSTr] = f(goTypeStr)
+	}
+
 	g.WithDataTypeMap(dtMaps)
 	g.UseDB(db)
 	modelsMap := map[string]any{}
