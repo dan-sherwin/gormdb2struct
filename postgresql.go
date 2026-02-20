@@ -82,15 +82,22 @@ func postgresToGorm(cfg ConversionConfig) {
 	})
 
 	tables := []string{}
-	err = db.Raw("select table_name from information_schema.tables where table_schema = 'public'").Scan(&tables).Error
-	if err != nil {
-		log.Fatal(err.Error())
+	if cfg.Tables != nil {
+		tables = *cfg.Tables
+	} else {
+		err = db.Raw("select table_name from information_schema.tables where table_schema = 'public'").Scan(&tables).Error
+		if err != nil {
+			log.Fatal(err.Error())
+		}
 	}
-
 	materializedViews := []string{}
-	err = db.Raw("select matviewname from pg_matviews where schemaname='public'").Scan(&materializedViews).Error
-	if err != nil {
-		log.Fatal(err.Error())
+	if cfg.MaterializedViews != nil {
+		materializedViews = *cfg.MaterializedViews
+	} else {
+		err = db.Raw("select matviewname from pg_matviews where schemaname='public'").Scan(&materializedViews).Error
+		if err != nil {
+			log.Fatal(err.Error())
+		}
 	}
 
 	g.WithJSONTagNameStrategy(func(col string) (tag string) { return strcase.ToLowerCamel(col) })

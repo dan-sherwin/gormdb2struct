@@ -22,6 +22,8 @@ type (
 		OutPath                 string
 		OutPackagePath          string
 		ImportPackagePaths      []string
+		Tables                  *[]string
+		MaterializedViews       *[]string
 		JsonTagOverridesByTable map[string]map[string]string
 		ExtraFields             map[string][]ExtraField
 		TypeMap                 map[string]string
@@ -252,6 +254,12 @@ CleanUp = true
 ImportPackagePaths = [
   "github.com/dan-sherwin/gormdb2struct/pgtypes",
 ]
+
+# Tables (optional. defaults to all tables)
+#Tables = ["foo", 'bar']
+
+# Materialized Views (optional. defaults to all)
+#MaterializedViews = ["foo","bar"]
 
 # TypeMap: database column type overrides (optional)
 [TypeMap]
