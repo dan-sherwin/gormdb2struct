@@ -57,12 +57,6 @@ const (
 )
 
 var (
-	// These variables are set via -ldflags at build time, for example:
-	//   go build -ldflags "-X main.version=v0.1.0 -X main.commit=$(git rev-parse --short HEAD) -X main.date=2025-09-01T08:38:00"
-	version = "dev"
-	commit  = "none"
-	date    = "unknown"
-
 	conversionConfig = ConversionConfig{
 		TypeMap: map[string]string{
 			"jsonb": "datatypes.JSONMap",
@@ -107,7 +101,7 @@ func usage(exitCode int, errMsg string) {
 func main() {
 	// Handle version flags early
 	if len(os.Args) == 2 && (os.Args[1] == "-version" || os.Args[1] == "--version") {
-		fmt.Fprintf(os.Stdout, "version: %s\ncommit: %s\ndate: %s\n", version, commit, date)
+		fmt.Println("version: v0.3.1")
 		return
 	}
 	if len(os.Args) == 2 && os.Args[1] == "-generateConfigSample" {
