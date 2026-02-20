@@ -107,6 +107,9 @@ func postgresToGorm(cfg ConversionConfig) {
 	f := func(def string) func(columnType gorm.ColumnType) (dataType string) {
 		return func(columnType gorm.ColumnType) string {
 			if colType, ok := columnType.ColumnType(); ok {
+				if idx := bytes.IndexByte([]byte(colType), '('); idx != -1 {
+					colType = colType[:idx]
+				}
 				if domain, ok := cfg.DomainTypeMap[colType]; ok {
 					return domain
 				}

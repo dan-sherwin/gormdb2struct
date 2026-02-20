@@ -101,7 +101,7 @@ func usage(exitCode int, errMsg string) {
 func main() {
 	// Handle version flags early
 	if len(os.Args) == 2 && (os.Args[1] == "-version" || os.Args[1] == "--version") {
-		fmt.Println("version: v0.3.1")
+		fmt.Println("version: v0.3.2")
 		return
 	}
 	if len(os.Args) == 2 && os.Args[1] == "-generateConfigSample" {

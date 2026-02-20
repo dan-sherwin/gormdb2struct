@@ -82,6 +82,12 @@ var PgTypeMap = map[string]string{
 	"tsvector": "string",
 	"tsquery":  "string",
 
+	// Semantic search types
+	"vector":      "string",
+	"vector(384)": "string",
+	"halfvec":     "string",
+	"sparsevec":   "string",
+
 	// OID family (uint32 internally)
 	"oid":           "uint32",
 	"regclass":      "uint32",
