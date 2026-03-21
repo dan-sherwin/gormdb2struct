@@ -1,3 +1,4 @@
+// Package pgtypes provides GORM-compatible custom PostgreSQL types.
 package pgtypes
 
 import (
@@ -98,8 +99,8 @@ func (Int64Array) GormDataType() string {
 	return "bigint[]"
 }
 
-func (Int64Array) GormDBDataType(db *gorm.DB, field *schema.Field) string {
-	if db.Dialector.Name() == "postgres" {
+func (Int64Array) GormDBDataType(db *gorm.DB, _ *schema.Field) string {
+	if db.Name() == "postgres" {
 		return "bigint[]"
 	}
 	return ""

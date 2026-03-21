@@ -68,13 +68,13 @@ It’s configuration-driven via a TOML file and suitable for CI/CD use.
     - brew install dan-sherwin/tap/gormdb2struct
 
 Then verify:
-- gormdb2struct -version
+- `gormdb2struct -version`
 
 ### Go Install:
-Requires Go 1.22+.
+Requires Go 1.25+.
 
 - Install directly into your GOPATH/bin (or GOBIN):
-  - go install github.com/dan-sherwin/gormdb2struct@latest
+  - `go install github.com/dan-sherwin/gormdb2struct@latest`
 
 You can also run directly via `go run` for quick use, or build a binary for reuse:
 
@@ -137,7 +137,7 @@ Advanced options:
 - TypeMap: override database column type -> Go type mapping (per column type)
 - DomainTypeMap: override PostgreSQL domain name -> Go type mapping
 - ExtraFields: add relation fields to specific models (has-one/has-many)
-- JsonTagOverridesByTable: override json tags per-table per-field
+- JSONTagOverridesByTable: override json tags per-table per-field
 
 Sample config:
 
@@ -186,9 +186,9 @@ ImportPackagePaths = [
 #   HasMany = true
 #   Pointer = true
 
-# JsonTagOverridesByTable: override json tags for fields (optional)
-[JsonTagOverridesByTable]
-# [JsonTagOverridesByTable."ticket_extended"]
+# JSONTagOverridesByTable: override json tags for fields (optional)
+[JSONTagOverridesByTable]
+# [JSONTagOverridesByTable."ticket_extended"]
 #   subject_fts = "-"  # omit from JSON
 
 # --- PostgreSQL specific options ---

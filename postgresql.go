@@ -123,6 +123,9 @@ func postgresToGorm(cfg ConversionConfig) {
 	for pgTypeSTr, goTypeStr := range pgtypes.PgTypeMap {
 		dtMaps[pgTypeSTr] = f(goTypeStr)
 	}
+	for pgTypeSTr, goTypeStr := range cfg.TypeMap {
+		dtMaps[pgTypeSTr] = f(goTypeStr)
+	}
 
 	g.WithDataTypeMap(dtMaps)
 	g.UseDB(db)
@@ -137,7 +140,7 @@ func postgresToGorm(cfg ConversionConfig) {
 				model.Fields = append(model.Fields, f)
 			}
 		}
-		if jsonTagOverrides, ok := cfg.JsonTagOverridesByTable[tableName]; ok {
+		if jsonTagOverrides, ok := cfg.JSONTagOverridesByTable[tableName]; ok {
 			for _, f := range model.Fields {
 				if jsonTag, ok := jsonTagOverrides[f.ColumnName]; ok {
 					f.Tag.Set("json", jsonTag)
@@ -156,7 +159,7 @@ func postgresToGorm(cfg ConversionConfig) {
 		if err != nil {
 			log.Fatal(err.Error())
 		}
-		defer sqldb.Query("drop view " + tmpViewName)
+		defer func() { _, _ = sqldb.Query("drop view " + tmpViewName) }()
 		modelName := cfg.NamingStrategy.SchemaName(viewName)
 		model := g.GenerateModelAs(tmpViewName, modelName)
 
@@ -170,7 +173,7 @@ func postgresToGorm(cfg ConversionConfig) {
 		}
 		model.FileName = viewName
 		model.TableName = viewName
-		if jsonTagOverrides, ok := cfg.JsonTagOverridesByTable[viewName]; ok {
+		if jsonTagOverrides, ok := cfg.JSONTagOverridesByTable[viewName]; ok {
 			for _, f := range model.Fields {
 				if jsonTag, ok := jsonTagOverrides[f.ColumnName]; ok {
 					f.Tag.Set("json", jsonTag)

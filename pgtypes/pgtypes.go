@@ -1,3 +1,4 @@
+// Package pgtypes provides GORM-compatible custom PostgreSQL types.
 package pgtypes
 
 var PgTypeMap = map[string]string{

@@ -1,16 +1,20 @@
+// Package pgtypes provides GORM-compatible custom PostgreSQL types.
 package pgtypes
 
 import (
 	"database/sql/driver"
 	"encoding/json"
 	"fmt"
+	"strings"
+
 	"gorm.io/gorm"
 	"gorm.io/gorm/schema"
-	"strings"
 )
 
+// BoolArray is a slice of booleans that supports PostgreSQL's boolean array type.
 type BoolArray []bool
 
+// Scan implements the sql.Scanner interface.
 func (a *BoolArray) Scan(src interface{}) error {
 	if src == nil {
 		*a = nil
@@ -46,6 +50,7 @@ func (a *BoolArray) Scan(src interface{}) error {
 	return nil
 }
 
+// Value implements the driver.Valuer interface.
 func (a BoolArray) Value() (driver.Value, error) {
 	if len(a) == 0 {
 		return "{}", nil
@@ -61,10 +66,12 @@ func (a BoolArray) Value() (driver.Value, error) {
 	return fmt.Sprintf("{%s}", strings.Join(strs, ",")), nil
 }
 
+// MarshalJSON implements the json.Marshaler interface.
 func (a BoolArray) MarshalJSON() ([]byte, error) {
 	return json.Marshal([]bool(a))
 }
 
+// UnmarshalJSON implements the json.Unmarshaler interface.
 func (a *BoolArray) UnmarshalJSON(data []byte) error {
 	var tmp []bool
 	if err := json.Unmarshal(data, &tmp); err != nil {
@@ -74,6 +81,7 @@ func (a *BoolArray) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
+// MarshalText implements the encoding.TextMarshaler interface.
 func (a BoolArray) MarshalText() ([]byte, error) {
 	strs := make([]string, len(a))
 	for i, v := range a {
@@ -86,6 +94,7 @@ func (a BoolArray) MarshalText() ([]byte, error) {
 	return []byte(strings.Join(strs, ",")), nil
 }
 
+// UnmarshalText implements the encoding.TextUnmarshaler interface.
 func (a *BoolArray) UnmarshalText(data []byte) error {
 	if len(data) == 0 {
 		*a = BoolArray{}
@@ -107,21 +116,25 @@ func (a *BoolArray) UnmarshalText(data []byte) error {
 	return nil
 }
 
+// GormDataType implements the gorm.DataTypeInterface.
 func (BoolArray) GormDataType() string {
 	return "boolean[]"
 }
 
-func (BoolArray) GormDBDataType(db *gorm.DB, field *schema.Field) string {
-	if db.Dialector.Name() == "postgres" {
+// GormDBDataType implements the gorm.DBDataTypeInterface.
+func (BoolArray) GormDBDataType(db *gorm.DB, _ *schema.Field) string {
+	if db.Name() == "postgres" {
 		return "boolean[]"
 	}
 	return ""
 }
 
+// FromSlice converts a bool slice to a BoolArray.
 func (BoolArray) FromSlice(s []bool) BoolArray {
 	return BoolArray(s)
 }
 
+// AsSlice converts the BoolArray to a bool slice.
 func (a BoolArray) AsSlice() []bool {
 	return []bool(a)
 }
@@ -142,6 +155,7 @@ func (a BoolArray) Len() int           { return len(a) }
 func (a BoolArray) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
 func (a BoolArray) Less(i, j int) bool { return !a[i] && a[j] }
 
+// Contains returns true if the BoolArray contains the given value.
 func (a BoolArray) Contains(val bool) bool {
 	for _, x := range a {
 		if x == val {
@@ -151,6 +165,7 @@ func (a BoolArray) Contains(val bool) bool {
 	return false
 }
 
+// IndexOf returns the index of the first occurrence of the given value, or -1 if not found.
 func (a BoolArray) IndexOf(val bool) int {
 	for i, x := range a {
 		if x == val {
@@ -160,10 +175,12 @@ func (a BoolArray) IndexOf(val bool) int {
 	return -1
 }
 
+// IsEmpty returns true if the BoolArray is empty.
 func (a BoolArray) IsEmpty() bool {
 	return len(a) == 0
 }
 
+// Unique returns a new BoolArray with duplicate values removed.
 func (a BoolArray) Unique() BoolArray {
 	var out BoolArray
 	seen := map[bool]bool{}
@@ -176,6 +193,7 @@ func (a BoolArray) Unique() BoolArray {
 	return out
 }
 
+// Filter returns a new BoolArray containing only elements that satisfy the given predicate.
 func (a BoolArray) Filter(f func(bool) bool) BoolArray {
 	var out BoolArray
 	for _, v := range a {
@@ -186,10 +204,12 @@ func (a BoolArray) Filter(f func(bool) bool) BoolArray {
 	return out
 }
 
+// Append returns a new BoolArray with the given values appended.
 func (a BoolArray) Append(vals ...bool) BoolArray {
 	return append(a, vals...)
 }
 
+// Equals returns true if the BoolArray is equal to another BoolArray.
 func (a BoolArray) Equals(b BoolArray) bool {
 	if len(a) != len(b) {
 		return false

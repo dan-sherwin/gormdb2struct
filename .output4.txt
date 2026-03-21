@@ -1,0 +1,12 @@
+# github.com/dan-sherwin/gormdb2struct/sqlitetype
+sqlitetype/sqlitetype.go:13:11: undefined: ct
+sqlitetype/sqlitetype.go:17:11: undefined: ct
+sqlitetype/sqlitetype.go:22:13: undefined: ct
+sqlitetype/sqlitetype.go:23:11: undefined: ct
+sqlitetype/sqlitetype.go:31:63: undefined: ct
+sqlitetype/sqlitetype.go:32:63: undefined: ct
+sqlitetype/sqlitetype.go:33:63: undefined: ct
+sqlitetype/sqlitetype.go:34:63: undefined: ct
+sqlitetype/sqlitetype.go:35:63: undefined: ct
+sqlitetype/sqlitetype.go:36:63: undefined: ct
+sqlitetype/sqlitetype.go:36:63: too many errors

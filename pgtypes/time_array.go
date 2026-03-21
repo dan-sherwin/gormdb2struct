@@ -1,3 +1,4 @@
+// Package pgtypes provides GORM-compatible custom PostgreSQL types.
 package pgtypes
 
 import (
@@ -104,8 +105,8 @@ func (TimeArray) GormDataType() string {
 	return "timestamptz[]"
 }
 
-func (TimeArray) GormDBDataType(db *gorm.DB, field *schema.Field) string {
-	if db.Dialector.Name() == "postgres" {
+func (TimeArray) GormDBDataType(db *gorm.DB, _ *schema.Field) string {
+	if db.Name() == "postgres" {
 		return "timestamptz[]"
 	}
 	return ""

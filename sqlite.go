@@ -54,8 +54,7 @@ func sqliteToGorm(cfg ConversionConfig) {
 
 	// Build models to allow extraFields and jsonTagOverrides like Postgres path
 	modelsMap := map[string]any{}
-	modelStructNames := []string{}
-	tables := []string{}
+	var tables []string
 	if cfg.Tables != nil {
 		tables = *cfg.Tables
 	} else {
@@ -72,7 +71,7 @@ func sqliteToGorm(cfg ConversionConfig) {
 				model.Fields = append(model.Fields, f)
 			}
 		}
-		if jsonTagOverrides, ok := cfg.JsonTagOverridesByTable[tableName]; ok {
+		if jsonTagOverrides, ok := cfg.JSONTagOverridesByTable[tableName]; ok {
 			for _, f := range model.Fields {
 				if jsonTag, ok := jsonTagOverrides[f.ColumnName]; ok {
 					f.Tag.Set("json", jsonTag)
@@ -82,7 +81,6 @@ func sqliteToGorm(cfg ConversionConfig) {
 			}
 		}
 		modelsMap[tableName] = model
-		modelStructNames = append(modelStructNames, model.ModelStructName)
 	}
 
 	models := []any{}

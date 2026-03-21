@@ -77,7 +77,7 @@ func mustContain(t *testing.T, s, sub string) {
 }
 
 // projectRootPG returns the repo root directory (same strategy as the SQLite test)
-func projectRootPG(t *testing.T) string {
+func projectRootPG(_ *testing.T) string {
 	_, file, _, _ := runtime.Caller(0)
 	return filepath.Dir(file)
 }

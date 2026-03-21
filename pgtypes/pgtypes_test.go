@@ -1,7 +1,7 @@
+// Package pgtypes provides GORM-compatible custom PostgreSQL types.
 package pgtypes
 
 import (
-	"database/sql/driver"
 	"encoding/json"
 	"testing"
 
@@ -20,7 +20,7 @@ func TestStringArray_ScanAndValue(t *testing.T) {
 	if err != nil {
 		t.Fatalf("value failed: %v", err)
 	}
-	if vv, ok := v.(driver.Value); ok && vv == nil {
+	if v == nil {
 		t.Fatalf("value should not be nil")
 	}
 	if vs, ok := v.(string); !ok || vs != `{"a","b","c"}` {

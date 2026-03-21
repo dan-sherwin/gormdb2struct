@@ -1,0 +1,30 @@
+
+
+version: "2"
+
+run:
+  timeout: 5m
+  tests: true
+
+linters:
+  enable:
+    - govet
+    - staticcheck
+    - errcheck
+    - ineffassign
+    - unused
+    - revive
+  # v2: use exclusions instead of deprecated run.skip-dirs / issues.exclude-*
+  exclusions:
+    # tone down noisy style-only findings in early CI passes
+    rules:
+      # silence revive doc-comment nags for exported/package items for now
+      - path: ^internal/.*
+        linters: [revive]
+        text: "(?i)(package-comments|exported:|comment on exported)"
+
+issues:
+  # unlimited per-linter and per-text duplicates (keeps full report)
+  max-issues-per-linter: 0
+  max-same-issues: 0
+

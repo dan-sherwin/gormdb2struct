@@ -24,7 +24,7 @@ type (
 		ImportPackagePaths      []string
 		Tables                  *[]string
 		MaterializedViews       *[]string
-		JsonTagOverridesByTable map[string]map[string]string
+		JSONTagOverridesByTable map[string]map[string]string
 		ExtraFields             map[string][]ExtraField
 		TypeMap                 map[string]string
 		DomainTypeMap           map[string]string
@@ -78,7 +78,7 @@ var (
 	//	},
 	//},
 	//}
-	//jsonTagOverridesByTable = map[string]map[string]string{
+	//JSONTagOverridesByTable = map[string]map[string]string{
 	//"ticket_extended": {
 	//	"subject_fts": "-",
 	//},
@@ -109,7 +109,7 @@ func main() {
 		if err := os.WriteFile(out, []byte(sampleConfigTOML()), 0644); err != nil {
 			usage(2, fmt.Sprintf("failed to write sample config to %s: %v", out, err))
 		}
-		fmt.Fprintf(os.Stdout, "Sample config written to %s\n", out)
+		_, _ = fmt.Fprintf(os.Stdout, "Sample config written to %s\n", out)
 		return
 	}
 	if len(os.Args) != 2 {
@@ -133,8 +133,8 @@ func main() {
 	if cfg.ExtraFields == nil {
 		cfg.ExtraFields = map[string][]ExtraField{}
 	}
-	if cfg.JsonTagOverridesByTable == nil {
-		cfg.JsonTagOverridesByTable = map[string]map[string]string{}
+	if cfg.JSONTagOverridesByTable == nil {
+		cfg.JSONTagOverridesByTable = map[string]map[string]string{}
 	}
 	// Merge defaults from conversionConfig into cfg when not defined in the imported config
 	// Merge TypeMap
@@ -275,9 +275,9 @@ ImportPackagePaths = [
 #   HasMany = true
 #   Pointer = true
 
-# JsonTagOverridesByTable: override json tags for fields (optional)
-[JsonTagOverridesByTable]
-# [JsonTagOverridesByTable."ticket_extended"]
+# JSONTagOverridesByTable: override json tags for fields (optional)
+[JSONTagOverridesByTable]
+# [JSONTagOverridesByTable."ticket_extended"]
 #   subject_fts = "-"  # omit from JSON
 
 # --- PostgreSQL specific options ---
@@ -302,14 +302,14 @@ func cleanUp(outPath string) {
 		log.Fatal(err.Error())
 	}
 	for _, genFile := range genFiles {
-		os.Remove(genFile)
+		_ = os.Remove(genFile)
 	}
 	genFiles, err = filepath.Glob(outPath + "/models/*gen.go")
 	if err != nil {
 		log.Fatal(err.Error())
 	}
 	for _, genFile := range genFiles {
-		os.Remove(genFile)
+		_ = os.Remove(genFile)
 	}
 
 }

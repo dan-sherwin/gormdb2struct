@@ -31,7 +31,7 @@ func TestEndToEndSQLite(t *testing.T) {
 	if err != nil {
 		t.Fatalf("open sqlite: %v", err)
 	}
-	t.Cleanup(func() { db.Close() })
+	t.Cleanup(func() { _ = db.Close() })
 
 	schema := []string{
 		// main table covering many type mappings
@@ -248,7 +248,7 @@ func mustExist(t *testing.T, p string) {
 }
 
 // projectRoot returns the repo root directory (where this test file lives).
-func projectRoot(t *testing.T) string {
+func projectRoot(_ *testing.T) string {
 	_, file, _, _ := runtime.Caller(0)
 	return filepath.Dir(file)
 }
@@ -267,5 +267,3 @@ func modulePath(t *testing.T) string {
 	t.Fatal("module path not found")
 	return ""
 }
-
-func goVersion() string { return "1.24.6" }
