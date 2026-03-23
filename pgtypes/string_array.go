@@ -5,14 +5,18 @@ import (
 	"database/sql/driver"
 	"encoding/json"
 	"fmt"
+	"slices"
+	"strings"
+
 	"gorm.io/gorm"
 	"gorm.io/gorm/schema"
-	"strings"
 )
 
+// StringArray represents a PostgreSQL text array ([]text).
 type StringArray []string
 
-func (a *StringArray) Scan(src interface{}) error {
+// Scan implements the sql.Scanner interface.
+func (a *StringArray) Scan(src any) error {
 	if src == nil {
 		*a = nil
 		return nil
@@ -42,6 +46,7 @@ func (a *StringArray) Scan(src interface{}) error {
 	return nil
 }
 
+// Value implements the driver.Valuer interface.
 func (a StringArray) Value() (driver.Value, error) {
 	if len(a) == 0 {
 		return "{}", nil
@@ -126,24 +131,14 @@ func (a StringArray) Less(i, j int) bool {
 	return a[i] < a[j]
 }
 
-// Contains returns true if the value exists in the array
+// Contains returns true if the value exists in the array.
 func (a StringArray) Contains(val string) bool {
-	for _, s := range a {
-		if s == val {
-			return true
-		}
-	}
-	return false
+	return slices.Contains(a, val)
 }
 
-// IndexOf returns the index of the value, or -1 if not found
+// IndexOf returns the index of the value, or -1 if not found.
 func (a StringArray) IndexOf(val string) int {
-	for i, s := range a {
-		if s == val {
-			return i
-		}
-	}
-	return -1
+	return slices.Index(a, val)
 }
 
 // IsEmpty returns true if the array has no elements
@@ -180,15 +175,7 @@ func (a StringArray) Append(vals ...string) StringArray {
 	return append(a, vals...)
 }
 
-// Equals returns true if the other StringArray has the same values in order
+// Equals returns true if the other StringArray has the same values in order.
 func (a StringArray) Equals(b StringArray) bool {
-	if len(a) != len(b) {
-		return false
-	}
-	for i := range a {
-		if a[i] != b[i] {
-			return false
-		}
-	}
-	return true
+	return slices.Equal(a, b)
 }

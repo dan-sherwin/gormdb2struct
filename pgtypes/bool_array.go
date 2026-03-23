@@ -5,6 +5,7 @@ import (
 	"database/sql/driver"
 	"encoding/json"
 	"fmt"
+	"slices"
 	"strings"
 
 	"gorm.io/gorm"
@@ -15,7 +16,7 @@ import (
 type BoolArray []bool
 
 // Scan implements the sql.Scanner interface.
-func (a *BoolArray) Scan(src interface{}) error {
+func (a *BoolArray) Scan(src any) error {
 	if src == nil {
 		*a = nil
 		return nil
@@ -139,6 +140,7 @@ func (a BoolArray) AsSlice() []bool {
 	return []bool(a)
 }
 
+// String returns the string representation of the BoolArray.
 func (a BoolArray) String() string {
 	strs := make([]string, len(a))
 	for i, v := range a {
@@ -151,28 +153,23 @@ func (a BoolArray) String() string {
 	return strings.Join(strs, ",")
 }
 
-func (a BoolArray) Len() int           { return len(a) }
-func (a BoolArray) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
+// Len implements sort.Interface.
+func (a BoolArray) Len() int { return len(a) }
+
+// Swap implements sort.Interface.
+func (a BoolArray) Swap(i, j int) { a[i], a[j] = a[j], a[i] }
+
+// Less implements sort.Interface.
 func (a BoolArray) Less(i, j int) bool { return !a[i] && a[j] }
 
 // Contains returns true if the BoolArray contains the given value.
 func (a BoolArray) Contains(val bool) bool {
-	for _, x := range a {
-		if x == val {
-			return true
-		}
-	}
-	return false
+	return slices.Contains(a, val)
 }
 
 // IndexOf returns the index of the first occurrence of the given value, or -1 if not found.
 func (a BoolArray) IndexOf(val bool) int {
-	for i, x := range a {
-		if x == val {
-			return i
-		}
-	}
-	return -1
+	return slices.Index(a, val)
 }
 
 // IsEmpty returns true if the BoolArray is empty.
@@ -211,13 +208,5 @@ func (a BoolArray) Append(vals ...bool) BoolArray {
 
 // Equals returns true if the BoolArray is equal to another BoolArray.
 func (a BoolArray) Equals(b BoolArray) bool {
-	if len(a) != len(b) {
-		return false
-	}
-	for i := range a {
-		if a[i] != b[i] {
-			return false
-		}
-	}
-	return true
+	return slices.Equal(a, b)
 }

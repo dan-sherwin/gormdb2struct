@@ -19,7 +19,7 @@ type Duration struct {
 }
 
 // Scan implements the sql.Scanner interface.
-func (d *Duration) Scan(src interface{}) error {
+func (d *Duration) Scan(src any) error {
 	if src == nil {
 		d.Duration = 0
 		return nil
@@ -106,6 +106,7 @@ func (d Duration) AsDuration() time.Duration {
 	return d.Duration
 }
 
+// String returns the string representation of the Duration.
 func (d Duration) String() string {
 	return d.Duration.String()
 }

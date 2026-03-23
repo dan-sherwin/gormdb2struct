@@ -5,6 +5,7 @@ import (
 	"database/sql/driver"
 	"encoding/json"
 	"fmt"
+	"slices"
 	"strings"
 	"time"
 
@@ -16,7 +17,7 @@ import (
 type DurationArray []Duration
 
 // Scan implements the sql.Scanner interface.
-func (a *DurationArray) Scan(src interface{}) error {
+func (a *DurationArray) Scan(src any) error {
 	if src == nil {
 		*a = nil
 		return nil
@@ -146,6 +147,7 @@ func (a DurationArray) AsSlice() []time.Duration {
 	return out
 }
 
+// String returns the string representation of the DurationArray.
 func (a DurationArray) String() string {
 	strs := make([]string, len(a))
 	for i, v := range a {
@@ -154,28 +156,23 @@ func (a DurationArray) String() string {
 	return strings.Join(strs, ",")
 }
 
-func (a DurationArray) Len() int           { return len(a) }
-func (a DurationArray) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
+// Len implements sort.Interface.
+func (a DurationArray) Len() int { return len(a) }
+
+// Swap implements sort.Interface.
+func (a DurationArray) Swap(i, j int) { a[i], a[j] = a[j], a[i] }
+
+// Less implements sort.Interface.
 func (a DurationArray) Less(i, j int) bool { return a[i].Duration < a[j].Duration }
 
 // Contains returns true if the DurationArray contains the given value.
 func (a DurationArray) Contains(val time.Duration) bool {
-	for _, x := range a {
-		if x.Duration == val {
-			return true
-		}
-	}
-	return false
+	return slices.ContainsFunc(a, func(d Duration) bool { return d.Duration == val })
 }
 
 // IndexOf returns the index of the first occurrence of the given value, or -1 if not found.
 func (a DurationArray) IndexOf(val time.Duration) int {
-	for i, x := range a {
-		if x.Duration == val {
-			return i
-		}
-	}
-	return -1
+	return slices.IndexFunc(a, func(d Duration) bool { return d.Duration == val })
 }
 
 // IsEmpty returns true if the DurationArray is empty.
@@ -217,13 +214,5 @@ func (a DurationArray) Append(vals ...time.Duration) DurationArray {
 
 // Equals returns true if the DurationArray is equal to another DurationArray.
 func (a DurationArray) Equals(b DurationArray) bool {
-	if len(a) != len(b) {
-		return false
-	}
-	for i := range a {
-		if a[i].Duration != b[i].Duration {
-			return false
-		}
-	}
-	return true
+	return slices.EqualFunc(a, b, func(x, y Duration) bool { return x.Duration == y.Duration })
 }

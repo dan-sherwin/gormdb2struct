@@ -5,15 +5,19 @@ import (
 	"database/sql/driver"
 	"encoding/json"
 	"fmt"
-	"gorm.io/gorm"
-	"gorm.io/gorm/schema"
+	"slices"
 	"strconv"
 	"strings"
+
+	"gorm.io/gorm"
+	"gorm.io/gorm/schema"
 )
 
+// Float64Array represents a PostgreSQL double precision array ([]double precision).
 type Float64Array []float64
 
-func (a *Float64Array) Scan(src interface{}) error {
+// Scan implements the sql.Scanner interface.
+func (a *Float64Array) Scan(src any) error {
 	if src == nil {
 		*a = nil
 		return nil
@@ -45,6 +49,7 @@ func (a *Float64Array) Scan(src interface{}) error {
 	return nil
 }
 
+// Value implements the driver.Valuer interface.
 func (a Float64Array) Value() (driver.Value, error) {
 	if len(a) == 0 {
 		return "{}", nil
@@ -56,10 +61,12 @@ func (a Float64Array) Value() (driver.Value, error) {
 	return fmt.Sprintf("{%s}", strings.Join(strs, ",")), nil
 }
 
+// MarshalJSON implements the json.Marshaler interface.
 func (a Float64Array) MarshalJSON() ([]byte, error) {
 	return json.Marshal([]float64(a))
 }
 
+// UnmarshalJSON implements the json.Unmarshaler interface.
 func (a *Float64Array) UnmarshalJSON(data []byte) error {
 	var tmp []float64
 	if err := json.Unmarshal(data, &tmp); err != nil {
@@ -69,6 +76,7 @@ func (a *Float64Array) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
+// MarshalText implements the encoding.TextMarshaler interface.
 func (a Float64Array) MarshalText() ([]byte, error) {
 	strs := make([]string, len(a))
 	for i, v := range a {
@@ -77,6 +85,7 @@ func (a Float64Array) MarshalText() ([]byte, error) {
 	return []byte(strings.Join(strs, ",")), nil
 }
 
+// UnmarshalText implements the encoding.TextUnmarshaler interface.
 func (a *Float64Array) UnmarshalText(data []byte) error {
 	if len(data) == 0 {
 		*a = Float64Array{}
@@ -95,10 +104,12 @@ func (a *Float64Array) UnmarshalText(data []byte) error {
 	return nil
 }
 
+// GormDataType implements the gorm.DataTypeInterface.
 func (Float64Array) GormDataType() string {
 	return "double precision[]"
 }
 
+// GormDBDataType implements the gorm.DBDataTypeInterface.
 func (Float64Array) GormDBDataType(db *gorm.DB, _ *schema.Field) string {
 	if db.Name() == "postgres" {
 		return "double precision[]"
@@ -106,14 +117,17 @@ func (Float64Array) GormDBDataType(db *gorm.DB, _ *schema.Field) string {
 	return ""
 }
 
+// FromSlice converts a float64 slice to a Float64Array.
 func (Float64Array) FromSlice(s []float64) Float64Array {
 	return Float64Array(s)
 }
 
+// AsSlice converts the Float64Array to a float64 slice.
 func (a Float64Array) AsSlice() []float64 {
 	return []float64(a)
 }
 
+// String returns the string representation of the Float64Array.
 func (a Float64Array) String() string {
 	strs := make([]string, len(a))
 	for i, v := range a {
@@ -122,66 +136,60 @@ func (a Float64Array) String() string {
 	return strings.Join(strs, ",")
 }
 
-func (a Float64Array) Len() int           { return len(a) }
-func (a Float64Array) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
+// Len implements sort.Interface.
+func (a Float64Array) Len() int { return len(a) }
+
+// Swap implements sort.Interface.
+func (a Float64Array) Swap(i, j int) { a[i], a[j] = a[j], a[i] }
+
+// Less implements sort.Interface.
 func (a Float64Array) Less(i, j int) bool { return a[i] < a[j] }
 
+// Contains returns true if the value exists in the array.
 func (a Float64Array) Contains(val float64) bool {
-	for _, x := range a {
-		if x == val {
-			return true
-		}
-	}
-	return false
+	return slices.Contains(a, val)
 }
 
+// IndexOf returns the index of the value, or -1 if not found.
 func (a Float64Array) IndexOf(val float64) int {
-	for i, x := range a {
-		if x == val {
-			return i
-		}
-	}
-	return -1
+	return slices.Index(a, val)
 }
 
+// IsEmpty returns true if the array has no elements.
 func (a Float64Array) IsEmpty() bool {
 	return len(a) == 0
 }
 
+// Unique returns a new Float64Array with duplicate values removed.
 func (a Float64Array) Unique() Float64Array {
 	seen := make(map[float64]struct{}, len(a))
 	var out Float64Array
-	for _, v := range a {
-		if _, ok := seen[v]; !ok {
-			seen[v] = struct{}{}
-			out = append(out, v)
+	for _, val := range a {
+		if _, ok := seen[val]; !ok {
+			seen[val] = struct{}{}
+			out = append(out, val)
 		}
 	}
 	return out
 }
 
+// Filter returns a new Float64Array with elements matching the filter.
 func (a Float64Array) Filter(f func(float64) bool) Float64Array {
 	var out Float64Array
-	for _, v := range a {
-		if f(v) {
-			out = append(out, v)
+	for _, val := range a {
+		if f(val) {
+			out = append(out, val)
 		}
 	}
 	return out
 }
 
+// Append returns a new Float64Array with the specified values added.
 func (a Float64Array) Append(vals ...float64) Float64Array {
 	return append(a, vals...)
 }
 
+// Equals returns true if the other Float64Array has the same values in order.
 func (a Float64Array) Equals(b Float64Array) bool {
-	if len(a) != len(b) {
-		return false
-	}
-	for i := range a {
-		if a[i] != b[i] {
-			return false
-		}
-	}
-	return true
+	return slices.Equal(a, b)
 }

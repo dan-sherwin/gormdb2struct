@@ -1,6 +1,8 @@
 // Package pgtypes provides GORM-compatible custom PostgreSQL types.
 package pgtypes
 
+// PgTypeMap maps PostgreSQL data types to their corresponding Go types as strings.
+// This map is used during code generation to determine the field types of the generated structs.
 var PgTypeMap = map[string]string{
 	// Arrays
 	"text[]":                        "pgtypes.StringArray",

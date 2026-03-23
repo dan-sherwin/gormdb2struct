@@ -1,3 +1,4 @@
+// Package main provides the gormdb2struct CLI tool.
 package main
 
 import (
@@ -14,9 +15,11 @@ import (
 	"gorm.io/gorm/schema"
 )
 
+// DatabaseDialect represents the supported database types.
 type (
 	DatabaseDialect string
 
+	// ConversionConfig holds all configuration settings for the generator.
 	ConversionConfig struct {
 		DatabaseDialect         DatabaseDialect
 		OutPath                 string
@@ -41,19 +44,23 @@ type (
 		Sqlitedbpath            string
 	}
 
+	// ExtraField defines additional fields to be added to generated structs,
+	// typically for defining relationships (HasOne, HasMany).
 	ExtraField struct {
-		StructPropName    string //Property name to be added into the table struct
-		StructPropType    string //The full path type of the property (e.g. models.MyType)
-		FkStructPropName  string //Struct prpoerty name that is used in the foreign key
-		RefStructPropName string //Struct property name of the referenced table struct
+		StructPropName    string // Property name to be added into the table struct
+		StructPropType    string // The full path type of the property (e.g. models.MyType)
+		FkStructPropName  string // Struct property name that is used in the foreign key
+		RefStructPropName string // Struct property name of the referenced table struct
 		HasMany           bool   // A one-one or one-to-many relationship
 		Pointer           bool   // Should the added property be a pointer
 	}
 )
 
 const (
+	// POSTGRESQL dialect identifier.
 	POSTGRESQL DatabaseDialect = "postgresql"
-	SQLITE     DatabaseDialect = "sqlite"
+	// SQLITE dialect identifier.
+	SQLITE DatabaseDialect = "sqlite"
 )
 
 var (

@@ -36,6 +36,7 @@ It’s configuration-driven via a TOML file and suitable for CI/CD use.
 - [Quick Start](#quick-start)
 - [Configuration (TOML)](#configuration-toml)
 - [Generated Code Layout](#generated-code-layout)
+- [PostgreSQL Custom Types (pgtypes)](#postgresql-custom-types-pgtypes)
 - [Advanced: Type Mapping](#advanced-type-mapping)
 - [Testing](#testing)
 - [Troubleshooting](#troubleshooting)
@@ -243,6 +244,62 @@ if err := g.DB.First(&rec).Error; err != nil { /* handle */ }
 ```
 
 - If IncludeAutoMigrate = true, the generated DbInit will call AutoMigrate for all models.
+
+---
+
+## PostgreSQL Custom Types (pgtypes)
+
+The `pgtypes` package provides GORM-compatible custom types for PostgreSQL features that are not natively handled by GORM or standard Go types. These are especially useful when working with PostgreSQL arrays and intervals.
+
+### Implemented Types
+
+The following Go types are implemented in the `pgtypes` package:
+
+- `pgtypes.StringArray`: A slice of `string` for PostgreSQL `text[]`, `varchar[]`.
+- `pgtypes.BoolArray`: A slice of `bool` for PostgreSQL `boolean[]`.
+- `pgtypes.Int32Array`: A slice of `int32` for PostgreSQL `integer[]`, `int4[]`.
+- `pgtypes.Int64Array`: A slice of `int64` for PostgreSQL `bigint[]`, `int8[]`.
+- `pgtypes.Float64Array`: A slice of `float64` for PostgreSQL `float8[]`, `double precision[]`.
+- `pgtypes.UUIDArray`: A slice of `uuid.UUID` for PostgreSQL `uuid[]` (using `github.com/google/uuid`).
+- `pgtypes.TimeArray`: A slice of `time.Time` for PostgreSQL `timestamptz[]`, `timestamp[]`.
+- `pgtypes.Duration`: A wrapper around `time.Duration` for PostgreSQL `interval`.
+- `pgtypes.DurationArray`: A slice of `pgtypes.Duration` for PostgreSQL `interval[]`.
+
+### Supported PostgreSQL Mappings
+
+| PostgreSQL Type | `pgtypes` Go Type | Description |
+|-----------------|-------------------|-------------|
+| `text[]`, `varchar[]` | `pgtypes.StringArray` | Array of strings |
+| `boolean[]` | `pgtypes.BoolArray` | Array of booleans |
+| `integer[]`, `int4[]` | `pgtypes.Int32Array` | Array of 32-bit integers |
+| `bigint[]`, `int8[]` | `pgtypes.Int64Array` | Array of 64-bit integers |
+| `float8[]`, `double precision[]` | `pgtypes.Float64Array` | Array of 64-bit floats |
+| `uuid[]` | `pgtypes.UUIDArray` | Array of UUIDs |
+| `timestamptz[]`, `timestamp[]` | `pgtypes.TimeArray` | Array of timestamps |
+| `interval` | `pgtypes.Duration` | Postgres interval string to `time.Duration` |
+| `interval[]` | `pgtypes.DurationArray` | Array of intervals |
+
+### Using pgtypes as a Separate Dependency
+
+You can use the `pgtypes` package in your own Go projects even if you are not using the `gormdb2struct` generator.
+
+1. Add the module to your project:
+   ```bash
+   go get github.com/dan-sherwin/gormdb2struct/pgtypes
+   ```
+
+2. Import and use the types in your structs:
+   ```go
+   import "github.com/dan-sherwin/gormdb2struct/pgtypes"
+
+   type User struct {
+       ID    uint
+       Tags  pgtypes.StringArray `gorm:"type:text[]"`
+       Roles pgtypes.StringArray `gorm:"type:text[]"`
+   }
+   ```
+
+These types implement the `sql.Scanner` and `driver.Valuer` interfaces, as well as `json.Marshaler` and `json.Unmarshaler`.
 
 ---
 

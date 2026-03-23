@@ -1,3 +1,4 @@
+// Package sqlitetype provides SQLite-specific type mapping and utility functions for GORM.
 package sqlitetype
 
 import (

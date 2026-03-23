@@ -1,3 +1,4 @@
+// Package sqlitetype provides SQLite-specific type mapping and utility functions for GORM.
 package sqlitetype
 
 import (
@@ -7,6 +8,7 @@ import (
 )
 
 // TypeMap exposes the SQLite data type mapping used by the generator.
+// It maps SQLite type names to functions that return the corresponding Go type as a string.
 var TypeMap = map[string]func(gorm.ColumnType) string{
 	// ---- booleans ----
 	"BOOLEAN": func(ct gorm.ColumnType) string {

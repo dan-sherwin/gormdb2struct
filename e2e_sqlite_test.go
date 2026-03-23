@@ -1,3 +1,4 @@
+// Package main provides end-to-end tests for the gormdb2struct tool.
 package main
 
 import (
