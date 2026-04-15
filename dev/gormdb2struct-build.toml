@@ -1,0 +1,81 @@
+# gormdb2struct configuration
+ConfigVersion = 1
+
+# ----------------------------------------------------------------------
+# Generator
+# ----------------------------------------------------------------------
+[Generator]
+OutPath = "./db"
+OutPackagePath = "github.com/dan-sherwin/gormdb2struct/build/db"
+CleanUp = true
+ImportPackagePaths = [
+    "github.com/dan-sherwin/gormdb2struct/pgtypes",
+    "github.com/google/uuid",
+]
+# Objects = ["tickets", "ticket_extended_source", "ticket_extended"]
+
+
+
+# ----------------------------------------------------------------------
+# Database
+# Keep only the database subsection that matches Database.Dialect.
+# ----------------------------------------------------------------------
+[Database]
+Dialect = "postgresql"
+
+[Database.PostgreSQL]
+Host = "invictus"
+Port = 5432
+Name = "ticket_data_core"
+User = "ticket_management_service"
+Password = "@4POi$VhdT#*mg@v^Kl0"
+SSLMode = false
+
+[Database.SQLite]
+# Path = "./dev/schema.db"
+
+
+
+# ----------------------------------------------------------------------
+# Optional generation sections
+# ----------------------------------------------------------------------
+[DbInit]
+Enabled = true
+IncludeAutoMigrate = false
+GenerateAppSettingsRegistration = false
+UseSlogGormLogger = false
+
+[TypeMap]
+
+[ExtraFields]
+[[ExtraFields."ticket_extended"]]
+StructPropName = "Attachments"
+StructPropType = "models.Attachment"
+FkStructPropName = "TicketID"
+RefStructPropName = "TicketID"
+HasMany = true
+Pointer = true
+
+[JSONTagOverridesByTable]
+# [JSONTagOverridesByTable."ticket_extended"]
+# subject_fts = "-"
+
+
+
+# ----------------------------------------------------------------------
+# PostgreSQL-only sections
+# ----------------------------------------------------------------------
+[PostgreSQL.GeneratedTypes]
+PackageName = "types"
+RelativePath = "models/types"
+PackagePath = ""
+
+[PostgreSQL.GeneratedTypes.TypeMap]
+"spacelink_identifier" = "SpacelinkIdentifier"
+"spacelink_tenant_number" = "SpacelinkTenantNumber"
+"ticket_impact_severity" = "TicketImpactSeverity"
+"ticket_priority" = "TicketPriority"
+"ticket_relation_type" = "TicketRelationType"
+"ticket_status" = "TicketStatus"
+"ticket_type" = "TicketType"
+"ticket_type[]" = "TicketTypeArray"
