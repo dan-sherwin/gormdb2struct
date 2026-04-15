@@ -37,3 +37,5 @@ go.work.sum
 /gormdb2struct-sqlite-sample.toml
 /generated/
 /build/
+/.tools/
+/dist/

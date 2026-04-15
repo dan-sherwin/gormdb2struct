@@ -1,0 +1,84 @@
+# gormdb2struct configuration
+ConfigVersion = 1
+
+# ----------------------------------------------------------------------
+# Generator
+# ----------------------------------------------------------------------
+
+[Generator]
+OutPath = "./generated"
+OutPackagePath = "optical_interface_collector/cmd/app/db"
+CleanUp = true
+ImportPackagePaths = [
+    "github.com/dan-sherwin/gormdb2struct/pgtypes",
+    "go.corp.spacelink.com/sdks/go/sl_datatypes",
+]
+Objects = ["ledger_codes", "ledger_entries"]
+
+# ----------------------------------------------------------------------
+# Database
+# Keep only the database subsection that matches Database.Dialect.
+# ----------------------------------------------------------------------
+
+[Database]
+Dialect = "postgresql"
+
+[Database.PostgreSQL]
+Host = "invictus"
+Port = 5432
+Name = "billing_ledger_core"
+User = "billing_ledger_service"
+Password = "68W#t6d7e!@%vQe9$064"
+SSLMode = false
+
+[Database.SQLite]
+# Path = "./schema.db"
+
+# ----------------------------------------------------------------------
+# Optional generation sections
+# ----------------------------------------------------------------------
+
+[DbInit]
+Enabled = true
+IncludeAutoMigrate = false
+GenerateAppSettingsRegistration = false
+UseSlogGormLogger = false
+
+[TypeMap]
+# "jsonb" = "datatypes.JSONMap"
+# "uuid" = "datatypes.UUID"
+"spacelink_identifier" = "sl_datatypes.SpacelinkIdentifier"
+"spacelink_tenant_number" = "sl_datatypes.SpacelinkTenantNumber"
+"centi_amount" = "sl_datatypes.MilliAmount"
+"signed_centi_amount" = "sl_datatypes.MilliAmount"
+
+# ExtraFields: add relation fields to specific models (optional)
+#[ExtraFields]
+# [ExtraFields."ticket_extended"]
+#   [[ExtraFields."ticket_extended"]]
+#   StructPropName = "Attachments"
+#   StructPropType = "models.Attachment"
+#   FkStructPropName = "TicketID"
+#   RefStructPropName = "TicketID"
+#   HasMany = true
+#   Pointer = true
+
+# JSONTagOverridesByTable: override json tags for fields (optional)
+#[JSONTagOverridesByTable]
+# [JSONTagOverridesByTable."ticket_extended"]
+#   subject_fts = "-"
+
+# ----------------------------------------------------------------------
+# PostgreSQL-only sections
+# ----------------------------------------------------------------------
+
+[PostgreSQL.GeneratedTypes]
+PackageName = "dbtypes"
+RelativePath = "models/dbtypes"
+PackagePath = ""
+
+[PostgreSQL.GeneratedTypes.TypeMap]
+# "ticket_status" = "TicketStatus"
+# "ticket_type" = "TicketType"
+# "ticket_type[]" = "TicketTypeArray"
+# "my_text_domain" = "MyTextDomain"

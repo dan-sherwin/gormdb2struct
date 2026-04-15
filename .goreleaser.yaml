@@ -13,7 +13,7 @@ before:
 # Build the CLI for linux and windows
 builds:
   - id: cli-multiplatform
-    main: .
+    main: ./cmd
     binary: gormdb2struct
     env:
       - CGO_ENABLED=0
@@ -21,15 +21,15 @@ builds:
     goarch: [amd64, arm64]
     ldflags:
       - -s -w
-      - -X main.version={{ .Version }}
-      - -X main.commit={{ .ShortCommit }}
-      - -X main.date={{ .Date }}
+      - -X github.com/dan-sherwin/gormdb2struct/cmd/app/consts.Version={{ .Version }}
+      - -X github.com/dan-sherwin/gormdb2struct/cmd/app/consts.Commit={{ .ShortCommit }}
+      - -X github.com/dan-sherwin/gormdb2struct/cmd/app/consts.BuildDate={{ .Date }}
     flags:
       - -trimpath
 
   # Separate build specifically for macOS to be used by the Homebrew Cask
   - id: cli-macos
-    main: .
+    main: ./cmd
     binary: gormdb2struct
     env:
       - CGO_ENABLED=0
@@ -37,9 +37,9 @@ builds:
     goarch: [amd64, arm64]
     ldflags:
       - -s -w
-      - -X main.version={{ .Version }}
-      - -X main.commit={{ .ShortCommit }}
-      - -X main.date={{ .Date }}
+      - -X github.com/dan-sherwin/gormdb2struct/cmd/app/consts.Version={{ .Version }}
+      - -X github.com/dan-sherwin/gormdb2struct/cmd/app/consts.Commit={{ .ShortCommit }}
+      - -X github.com/dan-sherwin/gormdb2struct/cmd/app/consts.BuildDate={{ .Date }}
     flags:
       - -trimpath
 

@@ -1,1 +1,0 @@
-pgtypes/bool_array.go:3:1: expected 'package', found 'import'

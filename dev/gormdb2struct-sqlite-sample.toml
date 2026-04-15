@@ -1,0 +1,68 @@
+# gormdb2struct configuration
+ConfigVersion = 1
+
+# ----------------------------------------------------------------------
+# Generator
+# ----------------------------------------------------------------------
+
+[Generator]
+OutPath = "./generated"
+OutPackagePath = ""
+CleanUp = true
+ImportPackagePaths = [
+  "github.com/dan-sherwin/gormdb2struct/pgtypes",
+]
+# Objects = ["foo", "bar"]
+
+# ----------------------------------------------------------------------
+# Database
+# Keep only the database subsection that matches Database.Dialect.
+# ----------------------------------------------------------------------
+
+[Database]
+Dialect = "sqlite"
+
+[Database.PostgreSQL]
+# Host = "localhost"
+# Port = 5432
+# Name = "my_database"
+# User = "my_user"
+# Password = "secret"
+# SSLMode = false
+
+[Database.SQLite]
+Path = "./foo.db"
+
+# ----------------------------------------------------------------------
+# Optional generation sections
+# ----------------------------------------------------------------------
+
+[DbInit]
+Enabled = true
+IncludeAutoMigrate = true
+GenerateAppSettingsRegistration = false
+UseSlogGormLogger = false
+
+# TypeMap: shared database type overrides (optional).
+# PostgreSQL: standard types, enums, domains, arrays.
+# SQLite: declared column types.
+#[TypeMap]
+# "jsonb" = "datatypes.JSONMap"
+# "uuid" = "datatypes.UUID"
+
+# ExtraFields: add relation fields to specific models (optional)
+#[ExtraFields]
+#[[ExtraFields."ticket_extended"]]
+#StructPropName = "Attachments"
+#StructPropType = "models.Attachment"
+#FkStructPropName = "TicketID"
+#RefStructPropName = "TicketID"
+#HasMany = true
+#Pointer = true
+
+# JSONTagOverridesByTable: override json tags for fields (optional)
+#[JSONTagOverridesByTable]
+# [JSONTagOverridesByTable."ticket_extended"]
+#   subject_fts = "-"  # omit from JSON
+
+# GeneratedTypes is PostgreSQL-only and is omitted for SQLite configs.

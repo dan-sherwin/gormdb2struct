@@ -1,12 +1,15 @@
 # Gorm Database to Struct
-_Generate strongly typed GORM models and query helpers from your database schema (PostgreSQL or SQLite)._
+_Generate strongly typed GORM models and query helpers from your database schema (PostgreSQL or SQLite) with a stateless, config-first CLI._
 
-This tool connects to your database, introspects tables (and Postgres materialized views), and produces:
+This tool connects to your database, introspects database objects, and produces:
 - Models (structs with json and gorm tags)
 - A query package (via gorm.io/gen) with helpful typed methods
 - Optional db initializer (DbInit) tailored for your dialect
 
-It’s configuration-driven via a TOML file and suitable for CI/CD use.
+It’s configuration-driven via a TOML file, intentionally stateless, and suitable for CI/CD use.
+
+Current support is focused on PostgreSQL and SQLite.
+Support for additional GORM dialects is planned for future releases.
 
 ---
 
@@ -22,12 +25,21 @@ It’s configuration-driven via a TOML file and suitable for CI/CD use.
 ## Features
 - **Multi-database support**: PostgreSQL and SQLite
 - **Customizable JSON tags**: lowerCamel via strcase
-- **Flexible type mapping**: override with `TypeMap` or `DomainTypeMap`
+- **Flexible type mapping**: override with a single `TypeMap` for standard types, enums, domains, and arrays
 - **Relationship helpers**: add has-one / has-many fields via `ExtraFields`
 - **Fine-grained JSON control**: override tags per-table/field
 - **Optional AutoMigrate** in generated DbInit
 - **Safe cleanup** of old generated files
-- **Quick-start config generator** (`-generateConfigSample`)
+- **Quick-start config generator** (`generate-config-sample`)
+- **Modern CLI architecture** with structured logging and clean internal package boundaries
+
+---
+
+## Status
+
+- **Supported today**: PostgreSQL, SQLite
+- **Planned future dialects**: MySQL, TiDB, GaussDB, SQL Server, ClickHouse, Oracle
+- **Config format**: clean versioned config with `ConfigVersion = 1`, plus legacy unversioned compatibility for older shipped configs
 
 ---
 
@@ -35,6 +47,7 @@ It’s configuration-driven via a TOML file and suitable for CI/CD use.
 - [Install](#install)
 - [Quick Start](#quick-start)
 - [Configuration (TOML)](#configuration-toml)
+- [Architecture](#architecture)
 - [Generated Code Layout](#generated-code-layout)
 - [PostgreSQL Custom Types (pgtypes)](#postgresql-custom-types-pgtypes)
 - [Advanced: Type Mapping](#advanced-type-mapping)
@@ -62,33 +75,30 @@ It’s configuration-driven via a TOML file and suitable for CI/CD use.
 ### Install via Homebrew (macOS):
 
 - Using the tap:
-    - brew tap dan-sherwin/tap
+    - brew tap dan-sherwin/homebrew-tap
     - brew install gormdb2struct
 
 - Or directly:
-    - brew install dan-sherwin/tap/gormdb2struct
+    - brew install dan-sherwin/homebrew-tap/gormdb2struct
 
 Then verify:
 - `gormdb2struct -version`
 
-### Go Install:
-Requires Go 1.25+.
+### Build from source:
+Requires Go 1.26+.
 
-- Install directly into your GOPATH/bin (or GOBIN):
-  - `go install github.com/dan-sherwin/gormdb2struct@latest`
-
-You can also run directly via `go run` for quick use, or build a binary for reuse:
+You can run directly via `go run` for quick use, or build a binary for reuse:
 
 - Use directly via `go run` from a clone:
   - git clone https://github.com/dan-sherwin/gormdb2struct.git
   - cd gormdb2struct
-  - go run . -generateConfigSample
+  - go run ./cmd generate-config-sample
   - Edit the generated `gormdb2struct-sample.toml`
-  - go run . ./path/to/your-config.toml
+  - go run ./cmd ./path/to/your-config.toml
 
 - Or build the binary:
-  - go build -o gormdb2struct .
-  - ./gormdb2struct -generateConfigSample
+  - go build -o gormdb2struct ./cmd
+  - ./gormdb2struct generate-config-sample
   - ./gormdb2struct ./path/to/your-config.toml
 
 ---
@@ -98,7 +108,7 @@ You can also run directly via `go run` for quick use, or build a binary for reus
 1) Generate a sample config you can edit:
 
 ```
-$ go run . -generateConfigSample
+$ go run ./cmd generate-config-sample
 Sample config written to gormdb2struct-sample.toml
 ```
 
@@ -107,7 +117,7 @@ Sample config written to gormdb2struct-sample.toml
 3) Run the generator:
 
 ```
-$ go run . ./gormdb2struct-sample.toml
+$ go run ./cmd ./gormdb2struct-sample.toml
 ```
 
 4) Your generated code will appear under `OutPath` (e.g., `./generated`).
@@ -118,99 +128,133 @@ _That's it! You now have a generated GORM-ready package tailored to your schema.
 
 ## Configuration (TOML)
 
-Minimal required keys depend on the selected `DatabaseDialect`.
+Preferred format uses `ConfigVersion = 1`.
 
-- Shared
-  - OutPath: directory where generated files are written
-  - OutPackagePath: package path to the out path for use in the DbInit file
-  - DatabaseDialect: "postgresql" or "sqlite"
-  - GenerateDbInit: set true to also generate db initializer
-  - IncludeAutoMigrate: if true, DbInit runs GORM AutoMigrate for all models
-  - CleanUp: when true, remove old `*gen.go` files in OutPath before generating
-- PostgreSQL
-  - DbHost (required), DbName (required), DbPort (optional, defaults 5432)
-  - DbUser (optional), DbPassword (optional), DbSSLMode (optional)
-- SQLite
-  - Sqlitedbpath (required): path to your sqlite database file
+If `ConfigVersion` is omitted, `gormdb2struct` falls back to the legacy unversioned parser for older configs that are already in use.
 
-Advanced options:
-- ImportPackagePaths: extra import paths for generated code
-- TypeMap: override database column type -> Go type mapping (per column type)
-- DomainTypeMap: override PostgreSQL domain name -> Go type mapping
-- ExtraFields: add relation fields to specific models (has-one/has-many)
-- JSONTagOverridesByTable: override json tags per-table per-field
+Main sections in the versioned format:
+- `ConfigVersion = 1`
+- `[Generator]`: `OutPath`, `OutPackagePath`, `CleanUp`, `ImportPackagePaths`, `Objects`
+- `[Database]`: `Dialect`
+- `[Database.PostgreSQL]`: `Host`, `Port`, `Name`, `User`, `Password`, `SSLMode`
+- `[Database.SQLite]`: `Path`
+- `[DbInit]`: `Enabled`, `IncludeAutoMigrate`, `GenerateAppSettingsRegistration`, `UseSlogGormLogger`
+- `[TypeMap]`: shared database type overrides
+- `[ExtraFields]`: relation/helper fields
+- `[JSONTagOverridesByTable]`: per-table JSON tag overrides
+- `[PostgreSQL.GeneratedTypes]` and `[PostgreSQL.GeneratedTypes.TypeMap]`: PostgreSQL-only generated wrapper types
+
+Legacy compatibility:
+- If `ConfigVersion` is absent, older unversioned configs are still supported.
+- That legacy parser continues to accept older keys such as `DomainTypeMap`, `Tables`, `MaterializedViews`, `GenerateDbInit`, `IncludeAutoMigrate`, and `Sqlitedbpath`.
+- New configs should use the versioned format below.
 
 Sample config:
 
 ```
 # gormdb2struct configuration
-# OutPath: directory where generated files are written (models, query, db init)
+ConfigVersion = 1
+
+# ----------------------------------------------------------------------
+# Generator
+# ----------------------------------------------------------------------
+
+[Generator]
 OutPath = "./generated"
-
-# OutPackagePath: package path to the out path for use in the DbInit file (e.g. github.com/username/my_app/generated) (optional)
 OutPackagePath = ""
-
-# DatabaseDialect: "postgresql" or "sqlite"
-DatabaseDialect = "postgresql"
-
-# GenerateDbInit: also generate a db initialization file (db.go or db_sqlite.go)
-GenerateDbInit = true
-
-# IncludeAutoMigrate: if true, generated DbInit will run AutoMigrate for all models
-IncludeAutoMigrate = false
-
-# CleanUp: remove previous *gen.go files in OutPath before generating
 CleanUp = true
-
-# ImportPackagePaths: extra imports to include in generated code (optional)
 ImportPackagePaths = [
   "github.com/dan-sherwin/gormdb2struct/pgtypes",
 ]
+# Objects = ["tickets", "ticket_rollup"]
 
-# TypeMap: database column type overrides (optional)
+# ----------------------------------------------------------------------
+# Database
+# Keep only the database subsection that matches Database.Dialect.
+# ----------------------------------------------------------------------
+
+[Database]
+Dialect = "postgresql"
+
+[Database.PostgreSQL]
+Host = "localhost"
+Port = 5432
+Name = "my_database"
+User = "my_user"
+Password = "secret"
+SSLMode = false
+
+[Database.SQLite]
+Path = "./schema.db"
+
+# ----------------------------------------------------------------------
+# Optional generation sections
+# ----------------------------------------------------------------------
+
+[DbInit]
+Enabled = true
+IncludeAutoMigrate = false
+GenerateAppSettingsRegistration = false
+UseSlogGormLogger = false
+
+# TypeMap: shared database type overrides (optional).
+# PostgreSQL: standard types, enums, domains, arrays.
+# SQLite: declared column types.
 [TypeMap]
 # "jsonb" = "datatypes.JSONMap"
-# "uuid"  = "datatypes.UUID"
-
-# DomainTypeMap: map database domain names to Go types (optional)
-[DomainTypeMap]
+# "uuid" = "datatypes.UUID"
 # "my_text_domain" = "string"
 
 # ExtraFields: add relation fields to specific models (optional)
 [ExtraFields]
-# [ExtraFields."ticket_extended"]
-#   [[ExtraFields."ticket_extended"]]
-#   StructPropName = "Attachments"
-#   StructPropType = "models.Attachment"  # fully-qualified type
-#   FkStructPropName = "TicketID"
-#   RefStructPropName = "TicketID"
-#   HasMany = true
-#   Pointer = true
+# [[ExtraFields."ticket_extended"]]
+# StructPropName = "Attachments"
+# StructPropType = "models.Attachment"
+# FkStructPropName = "TicketID"
+# RefStructPropName = "TicketID"
+# HasMany = true
+# Pointer = true
 
 # JSONTagOverridesByTable: override json tags for fields (optional)
 [JSONTagOverridesByTable]
 # [JSONTagOverridesByTable."ticket_extended"]
-#   subject_fts = "-"  # omit from JSON
+# subject_fts = "-"
 
-# --- PostgreSQL specific options ---
-# Required when DatabaseDialect = "postgresql"
-DbHost = "localhost"      # required
-DbPort = 5432               # optional, defaults to 5432
-DbName = "my_database"     # required
-DbUser = "my_user"         # optional
-DbPassword = "secret"      # optional
-DbSSLMode = false           # optional: true to enable sslmode=require in DSN
+# ----------------------------------------------------------------------
+# PostgreSQL-only sections
+# ----------------------------------------------------------------------
 
-# --- SQLite specific option ---
-# Required when DatabaseDialect = "sqlite"
-Sqlitedbpath = "./schema.db"
+[PostgreSQL.GeneratedTypes]
+PackageName = "dbtypes"
+RelativePath = "models/dbtypes"
+PackagePath = ""
+
+[PostgreSQL.GeneratedTypes.TypeMap]
+# "ticket_status" = "TicketStatus"
+# "ticket_type" = "TicketType"
+# "ticket_type[]" = "TicketTypeArray"
+# "my_text_domain" = "MyTextDomain"
 ```
 
 Validation rules enforced by the tool:
-- OutPath is required
-- DatabaseDialect must be "postgresql" or "sqlite"
-- For postgresql: DbHost and DbName required; DbPort defaults to 5432 if omitted
-- For sqlite: Sqlitedbpath required
+- `ConfigVersion = 1` is the current explicit format
+- For versioned configs, unknown or misplaced keys are rejected
+- `[Generator].OutPath` is required
+- `[Database].Dialect` must be `postgresql` or `sqlite`
+- For PostgreSQL: `[Database.PostgreSQL].Host` and `[Database.PostgreSQL].Name` are required, and `Port` defaults to `5432` if omitted
+- For SQLite: `[Database.SQLite].Path` is required
+- PostgreSQL generated types are only supported when `[Database].Dialect = "postgresql"`
+
+---
+
+## Architecture
+
+- `cmd/main.go` is the single CLI entrypoint and release build target
+- `cmd/app` owns CLI parsing, version/build metadata, and structured logging
+- `internal/config` owns TOML decoding, normalization, defaults, and validation
+- `internal/generator` owns generation orchestration, dialect handling, cleanup, and DbInit emission
+- `pgtypes` remains the public PostgreSQL custom type package for generated projects
+- The CLI is intentionally stateless: no persistent settings, no hidden local app database, and no working-directory side effects
 
 ---
 
@@ -220,6 +264,7 @@ Given OutPath = "./generated":
 - ./generated/models: structs for your tables with tags
 - ./generated: query code via gorm.io/gen and a `db.go`/`db_sqlite.go` initializer when enabled
 - The package name equals the base directory of OutPath (e.g., "generated")
+- If `OutPackagePath` is omitted, the generator will try to derive the import path from the current Go module before writing `DbInit`
 
 ### Using the generated package
 
@@ -233,17 +278,21 @@ import (
 ```
 
 - Initialize the database:
-  - PostgreSQL: `g.DbInit()` accepts an optional DSN override string; if omitted, a DSN is built from DbHost/DbPort/DbName/DbUser/DbPassword/DbSSLMode.
-  - SQLite: `g.DbInit()` accepts an optional file path override string; if omitted, DbPath from the generated file is used.
+  - PostgreSQL: `g.DbInit()` returns an error and accepts an optional DSN override string; if omitted, a DSN is built from the configured PostgreSQL host/port/name/user/password/SSL mode via `github.com/dan-sherwin/go-utilities`.
+  - SQLite: `g.DbInit()` returns an error and accepts an optional file path override string; if omitted, DbPath from the generated file is used.
+  - If `DbInit.GenerateAppSettingsRegistration = true`, the generated init file also registers DB settings with `github.com/dan-sherwin/go-app-settings`.
+  - If `DbInit.UseSlogGormLogger = true`, the generated init file configures GORM with `github.com/orandin/slog-gorm`.
 
 - Perform operations with GORM using `g.DB`:
 
 ```
+if err := g.DbInit(); err != nil { /* handle */ }
+
 var rec m.YourModel
 if err := g.DB.First(&rec).Error; err != nil { /* handle */ }
 ```
 
-- If IncludeAutoMigrate = true, the generated DbInit will call AutoMigrate for all models.
+- If `DbInit.IncludeAutoMigrate = true`, the generated DbInit will call AutoMigrate for all models.
 
 ---
 
@@ -305,9 +354,11 @@ These types implement the `sql.Scanner` and `driver.Valuer` interfaces, as well 
 
 ## Advanced: Type Mapping
 
-- TypeMap: maps a database column type (e.g., "jsonb", "uuid") to a Go type string used in the generated struct.
-- DomainTypeMap (Postgres): if a column’s domain matches a configured key, the mapped Go type is used.
+- `Generator.Objects` is the preferred list of database objects to generate from. In legacy unversioned configs, `Tables` and `MaterializedViews` are still accepted and merged into the canonical object list.
+- `TypeMap` maps a database type (for example `jsonb`, `uuid`, `ticket_status`, `my_domain`, `ticket_type[]`) to the Go type string used in the generated struct.
+- In legacy unversioned configs, `DomainTypeMap` is still accepted and merged into the canonical type map.
 - SQLite type handling is provided in `sqlitetype/TypeMap`.
+- `PostgreSQL.GeneratedTypes` is PostgreSQL-only; SQLite uses `TypeMap` overrides but does not support generated enum/domain wrapper types.
 
 ---
 
@@ -318,6 +369,8 @@ The repository includes an end-to-end SQLite test `TestEndToEndSQLite` which:
 - Runs the generator
 - Builds and runs a small program using the generated package to exercise CRUD
 - Cleans up after itself
+
+There is also a template-generation test for PostgreSQL `DbInit` output so the generated initializer stays compile-oriented and deterministic.
 
 Run tests:
 
@@ -337,6 +390,7 @@ go test -short ./...
 - Ensure your database is reachable and credentials are correct.
 - For PostgreSQL, if you pass a custom DSN to `DbInit(dsn)`, it will override the default constructed DSN.
 - For SQLite, pass the database file path to `DbInit(path)` to override.
+- `DbInit` returns an error instead of panicking or exiting, so the parent app stays in control of error handling.
 - OutPath’s package name is derived from the directory name; ensure your imports use the correct module path.
 
 ---

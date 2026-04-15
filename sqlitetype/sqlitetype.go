@@ -2,6 +2,7 @@
 package sqlitetype
 
 import (
+	"fmt"
 	"strings"
 
 	"gorm.io/gorm"
@@ -93,12 +94,36 @@ var TypeMap = map[string]func(gorm.ColumnType) string{
 
 // TableNames returns user-defined (non-internal) tables for SQLite.
 func TableNames(db *gorm.DB) (tableNames []string) {
-	tableNames = []string{}
-	err := db.Raw("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'").Scan(&tableNames).Error
+	tableNames, err := LoadTableNames(db)
 	if err != nil {
 		panic(err)
 	}
 	return
+}
+
+// LoadTableNames returns user-defined (non-internal) SQLite table names in deterministic order.
+func LoadTableNames(db *gorm.DB) ([]string, error) {
+	tableNames := []string{}
+	err := db.Raw(`
+		SELECT name
+		FROM sqlite_master
+		WHERE type='table' AND name NOT LIKE 'sqlite_%'
+		ORDER BY name
+	`).Scan(&tableNames).Error
+	if err != nil {
+		return nil, fmt.Errorf("load sqlite table names: %w", err)
+	}
+	return tableNames, nil
+}
+
+// CloneTypeMap returns a shallow copy of the default SQLite type map so callers
+// can override mappings without mutating package-level defaults.
+func CloneTypeMap() map[string]func(gorm.ColumnType) string {
+	cloned := make(map[string]func(gorm.ColumnType) string, len(TypeMap))
+	for k, v := range TypeMap {
+		cloned[k] = v
+	}
+	return cloned
 }
 
 func nullablePtr(yes bool, base string) string {

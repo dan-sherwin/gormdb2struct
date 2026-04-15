@@ -1,0 +1,89 @@
+package config
+
+func SampleTOML() string {
+	return `# gormdb2struct configuration
+ConfigVersion = 1
+
+# ----------------------------------------------------------------------
+# Generator
+# ----------------------------------------------------------------------
+[Generator]
+OutPath = "./generated"
+OutPackagePath = ""
+CleanUp = true
+ImportPackagePaths = [
+  "github.com/dan-sherwin/gormdb2struct/pgtypes",
+]
+# Objects = ["tickets", "ticket_rollup"]
+
+
+
+# ----------------------------------------------------------------------
+# Database
+# Keep only the database subsection that matches Database.Dialect.
+# ----------------------------------------------------------------------
+[Database]
+Dialect = "postgresql"
+
+[Database.PostgreSQL]
+Host = "localhost"
+Port = 5432
+Name = "my_database"
+User = "my_user"
+Password = "secret"
+SSLMode = false
+
+[Database.SQLite]
+Path = "./schema.db"
+
+
+
+# ----------------------------------------------------------------------
+# Optional generation sections
+# ----------------------------------------------------------------------
+[DbInit]
+Enabled = true
+IncludeAutoMigrate = false
+GenerateAppSettingsRegistration = false
+UseSlogGormLogger = false
+
+# TypeMap: shared database type overrides (optional).
+# PostgreSQL: standard types, enums, domains, arrays.
+# SQLite: declared column types.
+[TypeMap]
+# "jsonb" = "datatypes.JSONMap"
+# "uuid" = "datatypes.UUID"
+# "my_text_domain" = "string"
+
+# ExtraFields: add relation fields to specific models (optional)
+[ExtraFields]
+# [[ExtraFields."ticket_extended"]]
+# StructPropName = "Attachments"
+# StructPropType = "models.Attachment"
+# FkStructPropName = "TicketID"
+# RefStructPropName = "TicketID"
+# HasMany = true
+# Pointer = true
+
+# JSONTagOverridesByTable: override json tags for fields (optional)
+[JSONTagOverridesByTable]
+# [JSONTagOverridesByTable."ticket_extended"]
+# subject_fts = "-"
+
+
+
+# ----------------------------------------------------------------------
+# PostgreSQL-only sections
+# ----------------------------------------------------------------------
+[PostgreSQL.GeneratedTypes]
+PackageName = "dbtypes"
+RelativePath = "models/dbtypes"
+PackagePath = ""
+
+[PostgreSQL.GeneratedTypes.TypeMap]
+# "ticket_status" = "TicketStatus"
+# "ticket_type" = "TicketType"
+# "ticket_type[]" = "TicketTypeArray"
+# "my_text_domain" = "MyTextDomain"
+`
+}

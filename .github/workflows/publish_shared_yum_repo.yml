@@ -1,13 +1,17 @@
 name: Publish Shared YUM Repo
 
 on:
+  workflow_call:
+    inputs:
+      tag:
+        description: Tag to publish (for example v1.0.0)
+        required: true
+        type: string
   workflow_dispatch:
     inputs:
       tag:
-        description: 'Tag to publish (e.g., v0.1.1). If empty and triggered on a release, uses that release tag.'
-        required: false
-  release:
-    types: [published]
+        description: 'Tag to publish (e.g., v1.0.0).'
+        required: true
 
 permissions:
   contents: read
@@ -24,16 +28,16 @@ jobs:
       - name: Determine tag
         id: tag
         run: |
-          if [ "${{ github.event_name }}" = "release" ]; then
-            echo "value=${{ github.event.release.tag_name }}" >> $GITHUB_OUTPUT
+          if [ "${{ github.event_name }}" = "workflow_call" ]; then
+            echo "value=${{ inputs.tag }}" >> $GITHUB_OUTPUT
           else
             echo "value=${{ github.event.inputs.tag }}" >> $GITHUB_OUTPUT
           fi
 
-      - name: Fail if tag is empty on manual run
-        if: ${{ github.event_name == 'workflow_dispatch' && steps.tag.outputs.value == '' }}
+      - name: Fail if tag is empty
+        if: ${{ steps.tag.outputs.value == '' }}
         run: |
-          echo "Error: tag input is required when manually triggering the workflow."
+          echo "Error: tag input is required."
           exit 1
 
       - name: Download release RPM assets

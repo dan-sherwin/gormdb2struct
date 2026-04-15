@@ -80,12 +80,21 @@ func TestEndToEndSQLite(t *testing.T) {
 
 	// Write TOML config for generator.
 	cfgToml := fmt.Sprintf(`
+ConfigVersion = 1
+
+[Generator]
 OutPath = %q
-DatabaseDialect = "sqlite"
-GenerateDbInit = true
-IncludeAutoMigrate = true
 CleanUp = true
-Sqlitedbpath = %q
+
+[Database]
+Dialect = "sqlite"
+
+[Database.SQLite]
+Path = %q
+
+[DbInit]
+Enabled = true
+IncludeAutoMigrate = true
 
 [ExtraFields]
   [[ExtraFields."all_types"]]
@@ -101,8 +110,8 @@ Sqlitedbpath = %q
 		t.Fatal(err)
 	}
 
-	// Run generator: go run . <config>
-	cmd := exec.CommandContext(context.Background(), "go", "run", ".", cfgPath)
+	// Run generator: go run ./cmd <config>
+	cmd := exec.CommandContext(context.Background(), "go", "run", "./cmd", cfgPath)
 	cmd.Dir = projectRoot(t)
 	cmd.Env = os.Environ()
 	out, err := cmd.CombinedOutput()
@@ -113,20 +122,6 @@ Sqlitedbpath = %q
 	// Verify expected generated files exist
 	mustExist(t, filepath.Join(outPath, "models"))
 	mustExist(t, filepath.Join(outPath, "db_sqlite.go"))
-
-	// Patch generated db file import path to full module path and drop slog-gorm to avoid external dep
-	dbInitPath := filepath.Join(outPath, "db_sqlite.go")
-	b, err := os.ReadFile(dbInitPath)
-	if err != nil {
-		t.Fatal(err)
-	}
-	pkgBase := filepath.Base(outPath)
-	patched := strings.ReplaceAll(string(b), fmt.Sprintf("\"%s/models\"", pkgBase), fmt.Sprintf("\"%s/%s/models\"", modulePath(t), pkgBase))
-	patched = strings.ReplaceAll(patched, "slogGorm \"github.com/orandin/slog-gorm\"\n\t\"github.com/glebarez/sqlite\"", "\"github.com/glebarez/sqlite\"")
-	patched = strings.ReplaceAll(patched, "&gorm.Config{Logger: slogGorm.New()}", "&gorm.Config{}")
-	if err := os.WriteFile(dbInitPath, []byte(patched), 0o644); err != nil {
-		t.Fatal(err)
-	}
 
 	// Determine the generated struct name for the all_types table by reading its model file
 	modelsDir := filepath.Join(outPath, "models")
@@ -164,6 +159,8 @@ Sqlitedbpath = %q
 		t.Fatalf("unable to determine model type name from %s", allTypesFile)
 	}
 
+	pkgBase := filepath.Base(outPath)
+
 	// Create a small program under this module that uses the generated package
 	cmdDir := filepath.Join(projectRoot(t), "cmd_e2e")
 	if err := os.MkdirAll(cmdDir, 0o755); err != nil {
@@ -179,7 +176,7 @@ import (
   m "%s/%s/models"
 )
 func main(){
-  g.DbInit(%q)
+  if err := g.DbInit(%q); err != nil { panic(err) }
   // Insert
   js := datatypes.JSONMap(map[string]any{"a": 1, "b": 2})
   a := &m.%s{BoolCol: ptrBool(true), Tiny1: ptrStr("1"), IntCol: ptrI64(42), BigCol: ptrI64(4200), RealCol: ptrF64(1.5), DoubleCol: ptrF64(2.5), FloatCol: ptrF32(3.5), TextCol: ptrStr("hello"), VarcharCol: ptrStr("v"), CharCol: ptrStr("c"), BlobCol: ptrBytes([]byte{1,2,3}), DateCol: ptrTime(1700000000), DatetimeCol: ptrTime(1700000100), TsCol: ptrTime(1700000200), NumericCol: ptrF64(10.5), DecimalCol: ptrF64(20.5), DurationCol: ptrDur(1234567890), JSONCol: &js}
