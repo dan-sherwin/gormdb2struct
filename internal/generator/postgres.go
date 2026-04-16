@@ -4,12 +4,10 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	"log/slog"
 	"strings"
 
 	"github.com/dan-sherwin/gormdb2struct/internal/config"
 	"github.com/dan-sherwin/gormdb2struct/pgtypes"
-	"gorm.io/driver/postgres"
 	"gorm.io/gen"
 	"gorm.io/gorm"
 )
@@ -32,24 +30,14 @@ func (s *Service) generatePostgres(ctx context.Context, cfg config.Config) error
 		return err
 	}
 
-	dsn := postgresDSN(cfg)
-	s.logger.Info("Connecting to PostgreSQL",
-		slog.String("host", cfg.DbHost),
-		slog.Int("port", cfg.DbPort),
-		slog.String("db", cfg.DbName),
-	)
-
-	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
+	db, err := openPostgresDB(ctx, s.logger, cfg)
 	if err != nil {
-		return fmt.Errorf("open PostgreSQL connection: %w", err)
+		return err
 	}
 
 	sqldb, err := db.DB()
 	if err != nil {
 		return fmt.Errorf("get PostgreSQL sql.DB handle: %w", err)
-	}
-	if err := sqldb.PingContext(ctx); err != nil {
-		return fmt.Errorf("ping PostgreSQL database: %w", err)
 	}
 
 	if cfg.CleanUp {

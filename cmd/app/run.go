@@ -26,7 +26,7 @@ func Run(ctx context.Context, args []string) error {
 	if handled {
 		return err
 	}
-	handled, err = handleCommands(args)
+	handled, err = handleCommands(ctx, args)
 	if handled {
 		return err
 	}
@@ -65,6 +65,8 @@ func handleTopLevelHelp(args []string) (bool, error) {
 	case "-h", "--help":
 		_, _ = fmt.Fprintf(os.Stdout, `Usage: %s <config> [flags]
        %s generate-config-sample [flags]
+       %s inspect <config> [flags]
+       %s inspect-postgresql [flags]
 
 Generate strongly typed GORM models and query helpers from an existing database schema.
 
@@ -73,14 +75,16 @@ Arguments:
 
 Commands:
   generate-config-sample    Write a sample TOML configuration file.
+  inspect                   Inspect a PostgreSQL schema and recommend type mappings.
+  inspect-postgresql        Inspect PostgreSQL directly from connection flags and emit starter config guidance.
 
 Flags:
   -h, --help                    Show context-sensitive help.
   -version, --version           Print version information.
       --logging.level="info"    Log level.
 
-Run "%s generate-config-sample --help" for more information on the sample-config command.
-`, consts.APPNAME, consts.APPNAME, consts.APPNAME)
+Run "%s generate-config-sample --help", "%s inspect --help", or "%s inspect-postgresql --help" for command-specific help.
+`, consts.APPNAME, consts.APPNAME, consts.APPNAME, consts.APPNAME, consts.APPNAME, consts.APPNAME, consts.APPNAME)
 		return true, nil
 	default:
 		return false, nil
@@ -103,21 +107,62 @@ func handleLegacyCompat(args []string) (bool, error) {
 	}
 }
 
-func handleCommands(args []string) (bool, error) {
+func handleCommands(ctx context.Context, args []string) (bool, error) {
 	if len(args) == 0 {
 		return false, nil
 	}
-	if args[0] != "generate-config-sample" {
+
+	switch args[0] {
+	case "generate-config-sample":
+		cmd := GenerateConfigSampleCmd{}
+		parser := buildGenerateConfigSampleParser(&cmd)
+		if _, err := parser.Parse(args[1:]); err != nil {
+			return true, err
+		}
+		return true, writeSampleConfig(cmd.Out)
+	case "inspect":
+		cmd := InspectCmd{}
+		parser := buildInspectParser(&cmd)
+		if _, err := parser.Parse(args[1:]); err != nil {
+			return true, err
+		}
+
+		initLogger(cmd.Logging.Level)
+
+		cfg, err := config.Load(cmd.ConfigPath)
+		if err != nil {
+			return true, err
+		}
+
+		report, err := generator.New(slog.Default()).Inspect(ctx, cfg)
+		if err != nil {
+			return true, err
+		}
+
+		rendered, err := generator.RenderInspectionReport(report, cmd.Format)
+		if err != nil {
+			return true, err
+		}
+
+		if _, err := fmt.Fprint(os.Stdout, rendered); err != nil {
+			return true, fmt.Errorf("write inspection report: %w", err)
+		}
+		if !strings.HasSuffix(rendered, "\n") {
+			_, _ = fmt.Fprintln(os.Stdout)
+		}
+
+		return true, nil
+	case "inspect-postgresql":
+		cmd := InspectPostgreSQLCmd{}
+		parser := buildInspectPostgreSQLParser(&cmd)
+		if _, err := parser.Parse(args[1:]); err != nil {
+			return true, err
+		}
+
+		return true, runInspectPostgreSQL(ctx, cmd)
+	default:
 		return false, nil
 	}
-
-	cmd := GenerateConfigSampleCmd{}
-	parser := buildGenerateConfigSampleParser(&cmd)
-	if _, err := parser.Parse(args[1:]); err != nil {
-		return true, err
-	}
-
-	return true, writeSampleConfig(cmd.Out)
 }
 
 func writeSampleConfig(out string) error {

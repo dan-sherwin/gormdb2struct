@@ -31,6 +31,7 @@ Support for additional GORM dialects is planned for future releases.
 - **Optional AutoMigrate** in generated DbInit
 - **Safe cleanup** of old generated files
 - **Quick-start config generator** (`generate-config-sample`)
+- **Schema inspection**: recommend missing PostgreSQL type mappings with `inspect` or build a starter config with `inspect-postgresql`
 - **Modern CLI architecture** with structured logging and clean internal package boundaries
 
 ---
@@ -94,11 +95,13 @@ You can run directly via `go run` for quick use, or build a binary for reuse:
   - cd gormdb2struct
   - go run ./cmd generate-config-sample
   - Edit the generated `gormdb2struct-sample.toml`
+  - Optional: go run ./cmd inspect ./path/to/your-config.toml
   - go run ./cmd ./path/to/your-config.toml
 
 - Or build the binary:
   - go build -o gormdb2struct ./cmd
   - ./gormdb2struct generate-config-sample
+  - Optional: ./gormdb2struct inspect ./path/to/your-config.toml
   - ./gormdb2struct ./path/to/your-config.toml
 
 ---
@@ -114,13 +117,34 @@ Sample config written to gormdb2struct-sample.toml
 
 2) Edit the TOML to match your environment (see Configuration below).
 
-3) Run the generator:
+3) Optional: inspect your PostgreSQL schema for unmapped enums/domains/custom types:
+
+```
+$ go run ./cmd inspect ./gormdb2struct-sample.toml
+```
+
+You can also inspect a PostgreSQL database directly without writing a TOML first:
+
+```
+$ go run ./cmd inspect-postgresql \
+    --host localhost \
+    --database my_database \
+    --user my_user \
+    --password-env DB_PASSWORD \
+    --import-package go.corp.spacelink.com/sdks/go/sl_datatypes \
+    -o starter.toml
+```
+
+If you only want the inspection report, omit `-o` entirely.
+If you want to preview the starter TOML on screen, use `-o stdout`.
+
+4) Run the generator:
 
 ```
 $ go run ./cmd ./gormdb2struct-sample.toml
 ```
 
-4) Your generated code will appear under `OutPath` (e.g., `./generated`).
+5) Your generated code will appear under `OutPath` (e.g., `./generated`).
 
 _That's it! You now have a generated GORM-ready package tailored to your schema._
 
@@ -359,6 +383,14 @@ These types implement the `sql.Scanner` and `driver.Valuer` interfaces, as well 
 - In legacy unversioned configs, `DomainTypeMap` is still accepted and merged into the canonical type map.
 - SQLite type handling is provided in `sqlitetype/TypeMap`.
 - `PostgreSQL.GeneratedTypes` is PostgreSQL-only; SQLite uses `TypeMap` overrides but does not support generated enum/domain wrapper types.
+- `inspect` reuses your config file, scans the selected PostgreSQL objects, and reports unmapped enums, domains, enum arrays, and custom types.
+- `gormdb2struct inspect <config> --format toml` prints a paste-ready snippet with recommended `[PostgreSQL.GeneratedTypes.TypeMap]` entries and commented manual `[TypeMap]` placeholders for anything the generator cannot synthesize yet.
+- `gormdb2struct inspect-postgresql ...` always prints the human-readable inspection report to stdout.
+- If `-o/--out` is omitted, `inspect-postgresql` prints only the inspection report.
+- `gormdb2struct inspect-postgresql ... -o stdout` prints the generated starter TOML to stdout after the inspection report.
+- `gormdb2struct inspect-postgresql ... -o starter.toml` writes the full starter `ConfigVersion = 1` TOML to a file using the supplied PostgreSQL connection settings, discovered objects, and recommended generated type mappings.
+- `inspect-postgresql` supports `--password`, `--password-env`, `--password-stdin`, and `--password-prompt`. These are mutually exclusive so you can choose the safest input method for your environment.
+- `inspect-postgresql --import-package <pkg>` lets the inspector scan exported type names from one or more Go packages and prefer concrete `TypeMap` mappings like `sl_datatypes.SpacelinkIdentifier` over generated wrapper types when there is a unique name match.
 
 ---
 

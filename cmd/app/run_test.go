@@ -97,6 +97,12 @@ func TestRunTopLevelHelpListsGenerateConfigSampleWithoutRunCommand(t *testing.T)
 	if !strings.Contains(output, "generate-config-sample") {
 		t.Fatalf("expected top-level help to include generate-config-sample command, got: %s", output)
 	}
+	if !strings.Contains(output, "inspect") {
+		t.Fatalf("expected top-level help to include inspect command, got: %s", output)
+	}
+	if !strings.Contains(output, "inspect-postgresql") {
+		t.Fatalf("expected top-level help to include inspect-postgresql command, got: %s", output)
+	}
 	if !strings.Contains(output, "-version, --version") {
 		t.Fatalf("expected top-level help to include version flags, got: %s", output)
 	}
@@ -105,6 +111,41 @@ func TestRunTopLevelHelpListsGenerateConfigSampleWithoutRunCommand(t *testing.T)
 	}
 	if !strings.Contains(output, "Usage: gormdb2struct <config> [flags]") {
 		t.Fatalf("expected top-level help to describe config path usage, got: %s", output)
+	}
+}
+
+func TestEndsWithNewline(t *testing.T) {
+	if !endsWithNewline("hello\n") {
+		t.Fatal("expected newline detection to return true")
+	}
+	if endsWithNewline("hello") {
+		t.Fatal("expected newline detection to return false")
+	}
+	if endsWithNewline("") {
+		t.Fatal("expected empty string newline detection to return false")
+	}
+}
+
+func TestInspectPostgreSQLOutputMode(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    string
+		wantKind inspectPostgreSQLOutputKind
+		wantPath string
+	}{
+		{name: "empty", input: "", wantKind: inspectPostgreSQLOutputNone, wantPath: ""},
+		{name: "whitespace", input: "   ", wantKind: inspectPostgreSQLOutputNone, wantPath: ""},
+		{name: "stdout", input: "stdout", wantKind: inspectPostgreSQLOutputStdout, wantPath: ""},
+		{name: "trimmed file", input: "  foo.toml  ", wantKind: inspectPostgreSQLOutputFile, wantPath: "foo.toml"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			gotKind, gotPath := inspectPostgreSQLOutputMode(tt.input)
+			if gotKind != tt.wantKind || gotPath != tt.wantPath {
+				t.Fatalf("inspectPostgreSQLOutputMode(%q) = (%q, %q), want (%q, %q)", tt.input, gotKind, gotPath, tt.wantKind, tt.wantPath)
+			}
+		})
 	}
 }
 
