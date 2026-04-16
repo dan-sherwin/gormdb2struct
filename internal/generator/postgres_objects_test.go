@@ -5,7 +5,7 @@ import (
 	"testing"
 )
 
-func TestDefaultPostgresObjectsIncludesTablesThenMaterializedViews(t *testing.T) {
+func TestDefaultPostgresObjectsIncludesTablesViewsThenMaterializedViews(t *testing.T) {
 	t.Parallel()
 
 	relations := []postgresObject{
@@ -19,6 +19,7 @@ func TestDefaultPostgresObjectsIncludesTablesThenMaterializedViews(t *testing.T)
 	want := []postgresObject{
 		{Name: "alpha_table", Kind: postgresObjectTable},
 		{Name: "beta_table", Kind: postgresObjectTable},
+		{Name: "alpha_view", Kind: postgresObjectView},
 		{Name: "beta_matview", Kind: postgresObjectMaterializedView},
 	}
 

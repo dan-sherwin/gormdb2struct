@@ -230,6 +230,11 @@ func defaultPostgresObjects(relations []postgresObject) []postgresObject {
 		}
 	}
 	for _, relation := range relations {
+		if relation.Kind == postgresObjectView {
+			objects = append(objects, relation)
+		}
+	}
+	for _, relation := range relations {
 		if relation.Kind == postgresObjectMaterializedView {
 			objects = append(objects, relation)
 		}
