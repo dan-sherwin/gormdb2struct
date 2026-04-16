@@ -1,0 +1,25 @@
+ConfigVersion = 1
+
+[Generator]
+OutPath = "./generated"
+CleanUp = true
+Objects = ["tickets", "ticket_comments"]
+
+[Database]
+Dialect = "sqlite"
+
+[Database.SQLite]
+Path = "./helpdesk.db"
+
+[DbInit]
+Enabled = true
+IncludeAutoMigrate = false
+
+[ExtraFields]
+  [[ExtraFields."tickets"]]
+  StructPropName = "Comments"
+  StructPropType = "models.TicketComment"
+  FkStructPropName = "TicketID"
+  RefStructPropName = "ID"
+  HasMany = true
+  Pointer = false

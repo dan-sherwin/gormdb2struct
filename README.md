@@ -119,6 +119,8 @@ Then generate the code:
 gormdb2struct ./starter.toml
 ```
 
+For a full self-contained walkthrough you can run locally, see [`examples/sqlite-quickstart`](./examples/sqlite-quickstart).
+
 If you already have a config and just want a recommendation pass over the objects it references:
 
 ```bash
