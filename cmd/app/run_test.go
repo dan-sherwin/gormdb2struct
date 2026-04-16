@@ -149,6 +149,90 @@ func TestInspectPostgreSQLOutputMode(t *testing.T) {
 	}
 }
 
+func TestRunConvertConfigPrintsCanonicalVersionedTOML(t *testing.T) {
+	configPath := filepath.Join(t.TempDir(), "legacy.toml")
+	legacyConfig := `
+OutPath = "./internal/db"
+OutPackagePath = "example/internal/db"
+DatabaseDialect = "postgresql"
+DbHost = "invictus"
+DbPort = 5432
+DbName = "billing_core"
+DbUser = "billing_service"
+DbPassword = "secret"
+DbSSLMode = false
+GenerateDbInit = false
+IncludeAutoMigrate = false
+CleanUp = true
+
+[TypeMap]
+"centi_amount" = "sl_datatypes.MilliAmount"
+
+[DomainTypeMap]
+"spacelink_identifier" = "sl_datatypes.SpacelinkIdentifier"
+`
+	if err := os.WriteFile(configPath, []byte(legacyConfig), 0o644); err != nil {
+		t.Fatalf("write legacy config: %v", err)
+	}
+
+	output := captureStdout(t, func() {
+		if err := Run(context.Background(), []string{"convert-config", configPath}); err != nil {
+			t.Fatalf("run convert-config: %v", err)
+		}
+	})
+
+	if !strings.Contains(output, "ConfigVersion = 1\n") {
+		t.Fatalf("expected converted config version in stdout, got:\n%s", output)
+	}
+	if !strings.Contains(output, "\n[Generator]\n") || !strings.Contains(output, "\n[Database]\n") {
+		t.Fatalf("expected structured sections in stdout, got:\n%s", output)
+	}
+	if !strings.Contains(output, "\"spacelink_identifier\" = \"sl_datatypes.SpacelinkIdentifier\"") {
+		t.Fatalf("expected merged type map entry in stdout, got:\n%s", output)
+	}
+	if strings.Contains(output, "DomainTypeMap") || strings.Contains(output, "DatabaseDialect") {
+		t.Fatalf("expected legacy keys to be removed, got:\n%s", output)
+	}
+}
+
+func TestRunConvertConfigInPlaceOverwritesInput(t *testing.T) {
+	configPath := filepath.Join(t.TempDir(), "legacy.toml")
+	legacyConfig := `
+OutPath = "./generated"
+DatabaseDialect = "sqlite"
+Sqlitedbpath = "./example.db"
+GenerateDbInit = true
+IncludeAutoMigrate = false
+CleanUp = true
+`
+	if err := os.WriteFile(configPath, []byte(legacyConfig), 0o644); err != nil {
+		t.Fatalf("write legacy config: %v", err)
+	}
+
+	output := captureStdout(t, func() {
+		if err := Run(context.Background(), []string{"convert-config", configPath, "--in-place"}); err != nil {
+			t.Fatalf("run convert-config in-place: %v", err)
+		}
+	})
+
+	if !strings.Contains(output, "Converted config written to") {
+		t.Fatalf("expected in-place confirmation, got:\n%s", output)
+	}
+
+	content, err := os.ReadFile(configPath)
+	if err != nil {
+		t.Fatalf("read converted config: %v", err)
+	}
+
+	rendered := string(content)
+	if !strings.Contains(rendered, "ConfigVersion = 1\n") || !strings.Contains(rendered, "[Database.SQLite]\n") {
+		t.Fatalf("expected in-place conversion to write versioned sqlite config, got:\n%s", rendered)
+	}
+	if strings.Contains(rendered, "Sqlitedbpath") || strings.Contains(rendered, "DatabaseDialect") {
+		t.Fatalf("expected legacy keys to be removed after in-place conversion, got:\n%s", rendered)
+	}
+}
+
 func captureStdout(t *testing.T, fn func()) string {
 	t.Helper()
 

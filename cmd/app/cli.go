@@ -45,6 +45,15 @@ type (
 		GeneratedTypesPath    string        `name:"generated-types-path" default:"models/dbtypes" help:"RelativePath to use for generated PostgreSQL wrapper types in TOML output."`
 	}
 
+	// ConvertConfigCmd loads any supported config and emits the canonical
+	// ConfigVersion=1 TOML format. This command is intentionally hidden from
+	// normal help output and exists as a migration utility.
+	ConvertConfigCmd struct {
+		ConfigPath string `arg:"" name:"config" help:"Path to the config file to convert." type:"path"`
+		Out        string `name:"out" short:"o" default:"" help:"Write the converted config to this path instead of stdout." type:"path"`
+		InPlace    bool   `name:"in-place" help:"Overwrite the input config file with the converted format."`
+	}
+
 	// CLIConfig defines the top-level command-line contract.
 	CLIConfig struct {
 		Logging    LoggingConfig `embed:""`
@@ -85,6 +94,14 @@ func buildInspectPostgreSQLParser(cmd *InspectPostgreSQLCmd) *kong.Kong {
 	return kong.Must(cmd,
 		kong.Name(consts.APPNAME+" inspect-postgresql"),
 		kong.Description("Inspect PostgreSQL directly from connection flags, recommend mappings, and optionally emit a starter config."),
+		kong.ShortUsageOnError(),
+	)
+}
+
+func buildConvertConfigParser(cmd *ConvertConfigCmd) *kong.Kong {
+	return kong.Must(cmd,
+		kong.Name(consts.APPNAME+" convert-config"),
+		kong.Description("Convert a config file to the canonical ConfigVersion=1 TOML format."),
 		kong.ShortUsageOnError(),
 	)
 }

@@ -160,6 +160,14 @@ func handleCommands(ctx context.Context, args []string) (bool, error) {
 		}
 
 		return true, runInspectPostgreSQL(ctx, cmd)
+	case "convert-config":
+		cmd := ConvertConfigCmd{}
+		parser := buildConvertConfigParser(&cmd)
+		if _, err := parser.Parse(args[1:]); err != nil {
+			return true, err
+		}
+
+		return true, runConvertConfig(cmd)
 	default:
 		return false, nil
 	}
