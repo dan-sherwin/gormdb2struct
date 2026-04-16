@@ -16,6 +16,14 @@ const (
 	SQLite     DatabaseDialect = "sqlite"
 )
 
+type configSourceFormat uint8
+
+const (
+	configSourceFormatUnknown configSourceFormat = iota
+	configSourceFormatLegacy
+	configSourceFormatVersioned
+)
+
 type Config struct {
 	DatabaseDialect         DatabaseDialect
 	OutPath                 string
@@ -36,6 +44,7 @@ type Config struct {
 	DbPassword              string
 	DbSSLMode               bool
 	SQLiteDBPath            string
+	sourceFormat            configSourceFormat
 }
 
 type ExtraField struct {
@@ -62,8 +71,13 @@ type GenerateDbInitConfig struct {
 }
 
 var (
-	defaultTypeMap = map[string]string{
+	legacyDefaultTypeMap = map[string]string{
 		"jsonb": "datatypes.JSONMap",
+		"uuid":  "datatypes.UUID",
+	}
+
+	versionedDefaultTypeMap = map[string]string{
+		"jsonb": "datatypes.JSON",
 		"uuid":  "datatypes.UUID",
 	}
 
@@ -96,7 +110,7 @@ func (c *Config) Normalize() {
 		}
 	}
 
-	for key, value := range defaultTypeMap {
+	for key, value := range c.defaultTypeMap() {
 		if _, exists := c.TypeMap[key]; !exists {
 			c.TypeMap[key] = value
 		}
@@ -115,6 +129,15 @@ func (c *Config) Normalize() {
 
 	if c.DatabaseDialect == PostgreSQL && c.DbPort == 0 {
 		c.DbPort = 5432
+	}
+}
+
+func (c Config) defaultTypeMap() map[string]string {
+	switch c.sourceFormat {
+	case configSourceFormatLegacy:
+		return legacyDefaultTypeMap
+	default:
+		return versionedDefaultTypeMap
 	}
 }
 

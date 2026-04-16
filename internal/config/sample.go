@@ -53,7 +53,7 @@ UseSlogGormLogger = false
 # PostgreSQL: standard types, enums, domains, arrays, or existing custom packages.
 # SQLite: declared column types.
 [TypeMap]
-# "jsonb" = "datatypes.JSONMap"
+# "jsonb" = "datatypes.JSON"
 # "uuid" = "datatypes.UUID"
 # "my_text_domain" = "string"
 

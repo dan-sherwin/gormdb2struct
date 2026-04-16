@@ -64,7 +64,7 @@ func RenderVersionedTOML(cfg Config) string {
 	writeLine(&b, fmt.Sprintf("GenerateAppSettingsRegistration = %t", cfg.DbInit.GenerateAppSettingsRegistration))
 	writeLine(&b, fmt.Sprintf("UseSlogGormLogger = %t", cfg.DbInit.UseSlogGormLogger))
 
-	if filteredTypeMap := renderedTypeMap(cfg.TypeMap); len(filteredTypeMap) > 0 {
+	if filteredTypeMap := renderedTypeMap(cfg.TypeMap, versionedDefaultTypeMap); len(filteredTypeMap) > 0 {
 		writeBlankLine(&b)
 		writeLine(&b, "[TypeMap]")
 		writeStringMap(&b, filteredTypeMap)
@@ -116,14 +116,14 @@ func renderedImportPackagePaths(imports []string) []string {
 	return out
 }
 
-func renderedTypeMap(typeMap map[string]string) map[string]string {
+func renderedTypeMap(typeMap map[string]string, implicitDefaults map[string]string) map[string]string {
 	if len(typeMap) == 0 {
 		return nil
 	}
 
 	out := make(map[string]string, len(typeMap))
 	for key, value := range typeMap {
-		if defaultValue, isDefault := defaultTypeMap[key]; isDefault && defaultValue == value {
+		if defaultValue, isDefault := implicitDefaults[key]; isDefault && defaultValue == value {
 			continue
 		}
 		out[key] = value

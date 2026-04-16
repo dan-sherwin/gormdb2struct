@@ -140,6 +140,9 @@ func TestSampleTOMLLoads(t *testing.T) {
 	if cfg.DbHost != "localhost" {
 		t.Fatalf("expected sample Database.PostgreSQL.Host to load, got %q", cfg.DbHost)
 	}
+	if cfg.TypeMap["jsonb"] != "datatypes.JSON" {
+		t.Fatalf("expected sample config to use current jsonb default, got %q", cfg.TypeMap["jsonb"])
+	}
 	if cfg.SQLiteDBPath != "./schema.db" {
 		t.Fatalf("expected sample Database.SQLite.Path to load, got %q", cfg.SQLiteDBPath)
 	}

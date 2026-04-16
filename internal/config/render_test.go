@@ -15,7 +15,7 @@ func TestRenderVersionedTOMLOmitsLegacyAliasesAndImplicitDefaults(t *testing.T) 
 		ImportPackagePaths: []string{"go.corp.spacelink.com/sdks/go/sl_datatypes"},
 		Objects:            &objects,
 		TypeMap: map[string]string{
-			"jsonb":                "datatypes.JSONMap",
+			"jsonb":                "datatypes.JSON",
 			"uuid":                 "datatypes.UUID",
 			"spacelink_identifier": "sl_datatypes.SpacelinkIdentifier",
 		},

@@ -45,7 +45,7 @@ GenerateAppSettingsRegistration = false
 UseSlogGormLogger = false
 
 [TypeMap]
-# "jsonb" = "datatypes.JSONMap"
+# "jsonb" = "datatypes.JSON"
 # "uuid" = "datatypes.UUID"
 "spacelink_identifier" = "sl_datatypes.SpacelinkIdentifier"
 "spacelink_tenant_number" = "sl_datatypes.SpacelinkTenantNumber"

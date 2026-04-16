@@ -47,7 +47,7 @@ UseSlogGormLogger = false
 # PostgreSQL: standard types, enums, domains, arrays.
 # SQLite: declared column types.
 #[TypeMap]
-# "jsonb" = "datatypes.JSONMap"
+# "jsonb" = "datatypes.JSON"
 # "uuid" = "datatypes.UUID"
 
 # ExtraFields: add relation fields to specific models (optional)

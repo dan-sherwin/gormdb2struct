@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"strings"
 
 	"github.com/dan-sherwin/gormdb2struct/internal/config"
 	"github.com/dan-sherwin/gormdb2struct/sqlitetype"
@@ -44,7 +45,15 @@ func (s *Service) generateSQLite(ctx context.Context, cfg config.Config) error {
 	dataTypeMap := sqlitetype.CloneTypeMap()
 	for columnType, goType := range cfg.TypeMap {
 		mappedType := goType
-		dataTypeMap[columnType] = func(gorm.ColumnType) string { return mappedType }
+		cleaned := strings.TrimSpace(columnType)
+		if cleaned == "" {
+			continue
+		}
+		dataTypeMap[cleaned] = func(gorm.ColumnType) string { return mappedType }
+		upper := strings.ToUpper(cleaned)
+		if upper != cleaned {
+			dataTypeMap[upper] = func(gorm.ColumnType) string { return mappedType }
+		}
 	}
 	g.WithDataTypeMap(dataTypeMap)
 	g.WithImportPkgPath(mergeImportPaths(cfg.ImportPackagePaths, []string{"gorm.io/datatypes"})...)

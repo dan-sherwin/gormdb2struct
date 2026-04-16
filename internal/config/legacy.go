@@ -68,6 +68,7 @@ func loadLegacy(data []byte, path string) (Config, error) {
 		DbPassword:   raw.DbPassword,
 		DbSSLMode:    raw.DbSSLMode,
 		SQLiteDBPath: sqlitePath,
+		sourceFormat: configSourceFormatLegacy,
 	}
 
 	cfg.Normalize()

@@ -190,6 +190,9 @@ CleanUp = true
 	if !strings.Contains(output, "\"spacelink_identifier\" = \"sl_datatypes.SpacelinkIdentifier\"") {
 		t.Fatalf("expected merged type map entry in stdout, got:\n%s", output)
 	}
+	if !strings.Contains(output, "\"jsonb\" = \"datatypes.JSONMap\"") {
+		t.Fatalf("expected converted legacy config to preserve jsonb JSONMap mapping, got:\n%s", output)
+	}
 	if strings.Contains(output, "DomainTypeMap") || strings.Contains(output, "DatabaseDialect") {
 		t.Fatalf("expected legacy keys to be removed, got:\n%s", output)
 	}
@@ -227,6 +230,9 @@ CleanUp = true
 	rendered := string(content)
 	if !strings.Contains(rendered, "ConfigVersion = 1\n") || !strings.Contains(rendered, "[Database.SQLite]\n") {
 		t.Fatalf("expected in-place conversion to write versioned sqlite config, got:\n%s", rendered)
+	}
+	if !strings.Contains(rendered, "\"jsonb\" = \"datatypes.JSONMap\"") {
+		t.Fatalf("expected converted sqlite config to preserve jsonb JSONMap mapping, got:\n%s", rendered)
 	}
 	if strings.Contains(rendered, "Sqlitedbpath") || strings.Contains(rendered, "DatabaseDialect") {
 		t.Fatalf("expected legacy keys to be removed after in-place conversion, got:\n%s", rendered)

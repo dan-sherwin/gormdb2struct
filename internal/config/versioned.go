@@ -80,6 +80,7 @@ func loadVersioned(data []byte, path string) (Config, error) {
 		DbPassword:              raw.Database.PostgreSQL.Password,
 		DbSSLMode:               raw.Database.PostgreSQL.SSLMode,
 		SQLiteDBPath:            raw.Database.SQLite.Path,
+		sourceFormat:            configSourceFormatVersioned,
 	}
 
 	cfg.Normalize()

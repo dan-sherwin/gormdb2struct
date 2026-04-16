@@ -71,7 +71,7 @@ func RenderInspectionStarterConfig(cfg config.Config, report InspectionReport) s
 	typeMappedFindings := inspectionTypeMappedFindings(report.Findings)
 	manualFindings := inspectionManualFindings(report.Findings)
 	if len(typeMappedFindings) == 0 && len(manualFindings) == 0 {
-		builder.WriteString("# \"jsonb\" = \"datatypes.JSONMap\"\n")
+		builder.WriteString("# \"jsonb\" = \"datatypes.JSON\"\n")
 		builder.WriteString("# \"uuid\" = \"datatypes.UUID\"\n")
 		builder.WriteString("# \"my_text_domain\" = \"string\"\n")
 	} else {
