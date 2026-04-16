@@ -55,7 +55,7 @@ type (
 func buildParser(cli *CLIConfig) *kong.Kong {
 	parser := kong.Must(cli,
 		kong.Name(consts.APPNAME),
-		kong.Description("Generate strongly typed GORM models and query helpers from an existing database schema."),
+		kong.Description("Generate GORM models, query helpers, and optional PostgreSQL wrapper types from an existing schema."),
 		kong.ShortUsageOnError(),
 		kong.ConfigureHelp(kong.HelpOptions{
 			Compact: true,
@@ -68,7 +68,7 @@ func buildParser(cli *CLIConfig) *kong.Kong {
 func buildGenerateConfigSampleParser(cmd *GenerateConfigSampleCmd) *kong.Kong {
 	return kong.Must(cmd,
 		kong.Name(consts.APPNAME+" generate-config-sample"),
-		kong.Description("Write a sample TOML configuration file."),
+		kong.Description("Write a commented starter TOML configuration file."),
 		kong.ShortUsageOnError(),
 	)
 }
@@ -76,7 +76,7 @@ func buildGenerateConfigSampleParser(cmd *GenerateConfigSampleCmd) *kong.Kong {
 func buildInspectParser(cmd *InspectCmd) *kong.Kong {
 	return kong.Must(cmd,
 		kong.Name(consts.APPNAME+" inspect"),
-		kong.Description("Inspect a PostgreSQL schema and recommend missing type mappings."),
+		kong.Description("Inspect the PostgreSQL objects referenced by a config and recommend missing type mappings."),
 		kong.ShortUsageOnError(),
 	)
 }
@@ -84,7 +84,7 @@ func buildInspectParser(cmd *InspectCmd) *kong.Kong {
 func buildInspectPostgreSQLParser(cmd *InspectPostgreSQLCmd) *kong.Kong {
 	return kong.Must(cmd,
 		kong.Name(consts.APPNAME+" inspect-postgresql"),
-		kong.Description("Inspect a PostgreSQL schema directly from connection flags and emit starter config guidance."),
+		kong.Description("Inspect PostgreSQL directly from connection flags, recommend mappings, and optionally emit a starter config."),
 		kong.ShortUsageOnError(),
 	)
 }

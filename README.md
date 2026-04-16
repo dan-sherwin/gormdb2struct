@@ -1,201 +1,208 @@
-# Gorm Database to Struct
-_Generate strongly typed GORM models and query helpers from your database schema (PostgreSQL or SQLite) with a stateless, config-first CLI._
+# gormdb2struct
 
-This tool connects to your database, introspects database objects, and produces:
-- Models (structs with json and gorm tags)
-- A query package (via gorm.io/gen) with helpful typed methods
-- Optional db initializer (DbInit) tailored for your dialect
+`gormdb2struct` is a schema-first code generator for Go + GORM.
 
-It’s configuration-driven via a TOML file, intentionally stateless, and suitable for CI/CD use.
+It connects to an existing PostgreSQL or SQLite database and generates:
+- GORM model structs
+- `gorm.io/gen` query helpers
+- an optional `DbInit` file for the chosen dialect
+- optional PostgreSQL wrapper types for enums, domains, and enum arrays
 
-Current support is focused on PostgreSQL and SQLite.
-Support for additional GORM dialects is planned for future releases.
+If your database schema is the source of truth and you are tired of hand-maintaining structs, query code, and custom type plumbing, this tool is built for that workflow.
 
----
+## Why This Exists
 
-## Why use this?
+Many Go teams using GORM still end up doing a lot of repetitive work by hand:
+- rebuilding model structs every time the schema changes
+- writing boilerplate around PostgreSQL enums and domains
+- keeping generated query code and manual model code in sync
+- stitching database-specific initialization code into each project
 
-- **Save time** by automatically generating GORM models and query helpers from your existing database schema.
-- **Enforce type safety** with strongly typed structs and queries tailored to your database.
-- **Seamless integration** with GORM gen for powerful and type-safe query building.
-- **Supports CI/CD workflows** with configuration-driven generation and safe cleanup of old files.
+`gormdb2struct` exists to take that work off the critical path without introducing hidden state or a heavyweight framework.
 
----
+## Best Fit
 
-## Features
-- **Multi-database support**: PostgreSQL and SQLite
-- **Customizable JSON tags**: lowerCamel via strcase
-- **Flexible type mapping**: override with a single `TypeMap` for standard types, enums, domains, and arrays
-- **Relationship helpers**: add has-one / has-many fields via `ExtraFields`
-- **Fine-grained JSON control**: override tags per-table/field
-- **Optional AutoMigrate** in generated DbInit
-- **Safe cleanup** of old generated files
-- **Quick-start config generator** (`generate-config-sample`)
-- **Schema inspection**: recommend missing PostgreSQL type mappings with `inspect` or build a starter config with `inspect-postgresql`
-- **Modern CLI architecture** with structured logging and clean internal package boundaries
+This tool is a strong fit if you:
+- already have a PostgreSQL or SQLite schema
+- use GORM and want typed query helpers from `gorm.io/gen`
+- want a config-first CLI that works well in CI/CD
+- have PostgreSQL enums, domains, arrays, or custom wrapper types that need to stay honest
 
----
+It is especially useful for PostgreSQL-heavy codebases where enums and domains are part of the real application contract, not just database decoration.
 
-## Status
+## Highlights
 
-- **Supported today**: PostgreSQL, SQLite
-- **Planned future dialects**: MySQL, TiDB, GaussDB, SQL Server, ClickHouse, Oracle
-- **Config format**: clean versioned config with `ConfigVersion = 1`, plus legacy unversioned compatibility for older shipped configs
-
----
-
-## Table of Contents
-- [Install](#install)
-- [Quick Start](#quick-start)
-- [Configuration (TOML)](#configuration-toml)
-- [Architecture](#architecture)
-- [Generated Code Layout](#generated-code-layout)
-- [PostgreSQL Custom Types (pgtypes)](#postgresql-custom-types-pgtypes)
-- [Advanced: Type Mapping](#advanced-type-mapping)
-- [Testing](#testing)
-- [Troubleshooting](#troubleshooting)
-- [License](#license)
-- [Contributing](#contributing)
-
----
+- PostgreSQL and SQLite support today
+- Versioned, human-editable TOML configuration
+- Optional `DbInit` generation with app-settings and `slog-gorm` support
+- Unified `TypeMap` for standard types, enums, domains, and arrays
+- PostgreSQL generated wrapper types for enums, domains, and enum arrays
+- PostgreSQL inspection commands that recommend missing mappings and can emit a starter config
+- Support for importing existing Go type packages so the inspector can recommend real `TypeMap` entries instead of generated wrappers
+- Built-in `pgtypes` package for PostgreSQL arrays and intervals
+- Stateless CLI design with no persistent local settings
 
 ## Install
 
-### Using DNF/YUM (RPM):
-- Ensure config-manager is available (dnf-plugins-core provides it):
-  - `sudo dnf -y install dnf-plugins-core`  (on older yum-based systems: `sudo yum -y install yum-utils`)
-- Add the repo file to your system:
-  - `sudo dnf config-manager --add-repo https://dan-sherwin.github.io/dan-sherwin.repo`
-- Install the package:
-  - `sudo dnf install gormdb2struct`
+### Homebrew
 
-### Using a binary release:
-- Download the latest release from the [Releases page](https://github.com/dan-sherwin/gormdb2struct/releases).
-- Extract the archive and run the binary.
+```bash
+brew tap dan-sherwin/homebrew-tap
+brew install gormdb2struct
+```
 
-### Install via Homebrew (macOS):
+Or:
 
-- Using the tap:
-    - brew tap dan-sherwin/homebrew-tap
-    - brew install gormdb2struct
+```bash
+brew install dan-sherwin/homebrew-tap/gormdb2struct
+```
 
-- Or directly:
-    - brew install dan-sherwin/homebrew-tap/gormdb2struct
+### Binary release
 
-Then verify:
-- `gormdb2struct -version`
+Download the latest archive from the [Releases page](https://github.com/dan-sherwin/gormdb2struct/releases), extract it, and place `gormdb2struct` somewhere on your `PATH`.
 
-### Build from source:
+### DNF / YUM
+
+```bash
+sudo dnf config-manager --add-repo https://dan-sherwin.github.io/dan-sherwin.repo
+sudo dnf install gormdb2struct
+```
+
+On older yum-based systems, install the repo-management package first if needed.
+
+### Build from source
+
 Requires Go 1.26+.
 
-You can run directly via `go run` for quick use, or build a binary for reuse:
-
-- Use directly via `go run` from a clone:
-  - git clone https://github.com/dan-sherwin/gormdb2struct.git
-  - cd gormdb2struct
-  - go run ./cmd generate-config-sample
-  - Edit the generated `gormdb2struct-sample.toml`
-  - Optional: go run ./cmd inspect ./path/to/your-config.toml
-  - go run ./cmd ./path/to/your-config.toml
-
-- Or build the binary:
-  - go build -o gormdb2struct ./cmd
-  - ./gormdb2struct generate-config-sample
-  - Optional: ./gormdb2struct inspect ./path/to/your-config.toml
-  - ./gormdb2struct ./path/to/your-config.toml
-
----
+```bash
+git clone https://github.com/dan-sherwin/gormdb2struct.git
+cd gormdb2struct
+go build -o gormdb2struct ./cmd
+./gormdb2struct --help
+```
 
 ## Quick Start
 
-1) Generate a sample config you can edit:
+Generate a starter config:
 
-```
-$ go run ./cmd generate-config-sample
-Sample config written to gormdb2struct-sample.toml
-```
-
-2) Edit the TOML to match your environment (see Configuration below).
-
-3) Optional: inspect your PostgreSQL schema for unmapped enums/domains/custom types:
-
-```
-$ go run ./cmd inspect ./gormdb2struct-sample.toml
+```bash
+gormdb2struct generate-config-sample
 ```
 
-You can also inspect a PostgreSQL database directly without writing a TOML first:
+If you are working against PostgreSQL and want help discovering enums, domains, and custom types before you write a config by hand:
 
-```
-$ go run ./cmd inspect-postgresql \
-    --host localhost \
-    --database my_database \
-    --user my_user \
-    --password-env DB_PASSWORD \
-    --import-package go.corp.spacelink.com/sdks/go/sl_datatypes \
-    -o starter.toml
-```
-
-If you only want the inspection report, omit `-o` entirely.
-If you want to preview the starter TOML on screen, use `-o stdout`.
-
-4) Run the generator:
-
-```
-$ go run ./cmd ./gormdb2struct-sample.toml
+```bash
+gormdb2struct inspect-postgresql \
+  --host localhost \
+  --database my_database \
+  --user my_user \
+  --password-env DB_PASSWORD \
+  -o starter.toml
 ```
 
-5) Your generated code will appear under `OutPath` (e.g., `./generated`).
+If you already know you want to reuse types from an existing Go package, include it:
 
-_That's it! You now have a generated GORM-ready package tailored to your schema._
+```bash
+gormdb2struct inspect-postgresql \
+  --host localhost \
+  --database my_database \
+  --user my_user \
+  --password-env DB_PASSWORD \
+  --import-package go.corp.spacelink.com/sdks/go/sl_datatypes \
+  -o starter.toml
+```
 
----
+Then generate the code:
 
-## Configuration (TOML)
+```bash
+gormdb2struct ./starter.toml
+```
 
-Preferred format uses `ConfigVersion = 1`.
+If you already have a config and just want a recommendation pass over the objects it references:
 
-If `ConfigVersion` is omitted, `gormdb2struct` falls back to the legacy unversioned parser for older configs that are already in use.
+```bash
+gormdb2struct inspect ./gormdb2struct.toml
+```
+
+For a paste-ready TOML recommendation snippet from an existing config:
+
+```bash
+gormdb2struct inspect ./gormdb2struct.toml --format toml
+```
+
+## What Makes It Different
+
+The differentiator is not just model generation. It is the PostgreSQL type story.
+
+`gormdb2struct` can help with cases like:
+- PostgreSQL enums that should become real Go enum wrapper types
+- PostgreSQL domains that should map to existing application types
+- enum arrays that need a real wrapper type instead of a raw slice
+- projects that already have packages like `sl_datatypes` and want those reused automatically in generated config recommendations
+
+That means you can mix and match:
+- generated wrappers for schema-defined enums and domains
+- explicit `TypeMap` entries for hand-written domain types you already trust
+- default built-in support from `pgtypes` for common PostgreSQL arrays and intervals
+
+## Commands
+
+`gormdb2struct` supports four main entry points:
+
+- `gormdb2struct <config.toml>`
+  Generate code from a config file.
+- `gormdb2struct generate-config-sample`
+  Write a full commented starter config.
+- `gormdb2struct inspect <config.toml>`
+  Inspect the PostgreSQL objects referenced by an existing config and recommend type mappings.
+- `gormdb2struct inspect-postgresql`
+  Connect directly to PostgreSQL from CLI flags, print an inspection report, and optionally emit a starter config.
+
+`inspect-postgresql` password input options:
+- `--password`
+- `--password-env`
+- `--password-stdin`
+- `--password-prompt`
+
+If `-o/--out` is omitted, `inspect-postgresql` prints only the human-readable inspection report.
+
+If `-o stdout` is used, it prints the starter TOML after the report.
+
+If `-o <path>` is used, it writes only the starter TOML to that file.
+
+## Configuration
+
+The preferred config format is explicit and versioned:
+
+```toml
+ConfigVersion = 1
+```
+
+If `ConfigVersion` is omitted, `gormdb2struct` falls back to a legacy compatibility parser for older shipped configs.
 
 Main sections in the versioned format:
-- `ConfigVersion = 1`
-- `[Generator]`: `OutPath`, `OutPackagePath`, `CleanUp`, `ImportPackagePaths`, `Objects`
-- `[Database]`: `Dialect`
-- `[Database.PostgreSQL]`: `Host`, `Port`, `Name`, `User`, `Password`, `SSLMode`
-- `[Database.SQLite]`: `Path`
-- `[DbInit]`: `Enabled`, `IncludeAutoMigrate`, `GenerateAppSettingsRegistration`, `UseSlogGormLogger`
-- `[TypeMap]`: shared database type overrides
-- `[ExtraFields]`: relation/helper fields
-- `[JSONTagOverridesByTable]`: per-table JSON tag overrides
-- `[PostgreSQL.GeneratedTypes]` and `[PostgreSQL.GeneratedTypes.TypeMap]`: PostgreSQL-only generated wrapper types
+- `[Generator]`
+- `[Database]`
+- `[Database.PostgreSQL]`
+- `[Database.SQLite]`
+- `[DbInit]`
+- `[TypeMap]`
+- `[ExtraFields]`
+- `[JSONTagOverridesByTable]`
+- `[PostgreSQL.GeneratedTypes]`
+- `[PostgreSQL.GeneratedTypes.TypeMap]`
 
-Legacy compatibility:
-- If `ConfigVersion` is absent, older unversioned configs are still supported.
-- That legacy parser continues to accept older keys such as `DomainTypeMap`, `Tables`, `MaterializedViews`, `GenerateDbInit`, `IncludeAutoMigrate`, and `Sqlitedbpath`.
-- New configs should use the versioned format below.
+Use `gormdb2struct generate-config-sample` for the full commented example. The sample is structured for hand editing and grouped so dialect-specific settings are easy to find.
 
-Sample config:
+Minimal PostgreSQL example:
 
-```
-# gormdb2struct configuration
+```toml
 ConfigVersion = 1
-
-# ----------------------------------------------------------------------
-# Generator
-# ----------------------------------------------------------------------
 
 [Generator]
 OutPath = "./generated"
-OutPackagePath = ""
-CleanUp = true
-ImportPackagePaths = [
-  "github.com/dan-sherwin/gormdb2struct/pgtypes",
-]
-# Objects = ["tickets", "ticket_rollup"]
-
-# ----------------------------------------------------------------------
-# Database
-# Keep only the database subsection that matches Database.Dialect.
-# ----------------------------------------------------------------------
+Objects = ["tickets", "ticket_extended"]
+ImportPackagePaths = ["github.com/dan-sherwin/gormdb2struct/pgtypes"]
 
 [Database]
 Dialect = "postgresql"
@@ -203,293 +210,120 @@ Dialect = "postgresql"
 [Database.PostgreSQL]
 Host = "localhost"
 Port = 5432
-Name = "my_database"
-User = "my_user"
+Name = "ticket_data_core"
+User = "ticket_service"
 Password = "secret"
 SSLMode = false
-
-[Database.SQLite]
-Path = "./schema.db"
-
-# ----------------------------------------------------------------------
-# Optional generation sections
-# ----------------------------------------------------------------------
 
 [DbInit]
 Enabled = true
 IncludeAutoMigrate = false
-GenerateAppSettingsRegistration = false
-UseSlogGormLogger = false
 
-# TypeMap: shared database type overrides (optional).
-# PostgreSQL: standard types, enums, domains, arrays.
-# SQLite: declared column types.
 [TypeMap]
-# "jsonb" = "datatypes.JSONMap"
-# "uuid" = "datatypes.UUID"
-# "my_text_domain" = "string"
-
-# ExtraFields: add relation fields to specific models (optional)
-[ExtraFields]
-# [[ExtraFields."ticket_extended"]]
-# StructPropName = "Attachments"
-# StructPropType = "models.Attachment"
-# FkStructPropName = "TicketID"
-# RefStructPropName = "TicketID"
-# HasMany = true
-# Pointer = true
-
-# JSONTagOverridesByTable: override json tags for fields (optional)
-[JSONTagOverridesByTable]
-# [JSONTagOverridesByTable."ticket_extended"]
-# subject_fts = "-"
-
-# ----------------------------------------------------------------------
-# PostgreSQL-only sections
-# ----------------------------------------------------------------------
+"spacelink_identifier" = "sl_datatypes.SpacelinkIdentifier"
 
 [PostgreSQL.GeneratedTypes]
-PackageName = "dbtypes"
-RelativePath = "models/dbtypes"
-PackagePath = ""
+PackageName = "types"
+RelativePath = "models/types"
 
 [PostgreSQL.GeneratedTypes.TypeMap]
-# "ticket_status" = "TicketStatus"
-# "ticket_type" = "TicketType"
-# "ticket_type[]" = "TicketTypeArray"
-# "my_text_domain" = "MyTextDomain"
+"ticket_status" = "TicketStatus"
+"ticket_type" = "TicketType"
 ```
 
-Validation rules enforced by the tool:
-- `ConfigVersion = 1` is the current explicit format
-- For versioned configs, unknown or misplaced keys are rejected
+Validation highlights:
 - `[Generator].OutPath` is required
 - `[Database].Dialect` must be `postgresql` or `sqlite`
-- For PostgreSQL: `[Database.PostgreSQL].Host` and `[Database.PostgreSQL].Name` are required, and `Port` defaults to `5432` if omitted
-- For SQLite: `[Database.SQLite].Path` is required
-- PostgreSQL generated types are only supported when `[Database].Dialect = "postgresql"`
+- PostgreSQL requires host and database name
+- SQLite requires a database file path
+- PostgreSQL generated types are only available when the dialect is PostgreSQL
 
----
+## Generated Output
+
+Given `OutPath = "./generated"`:
+
+- `./generated/models`
+  Generated model structs with `gorm` and `json` tags
+- `./generated`
+  `gorm.io/gen` query helpers and optional `db.go` / `db_sqlite.go`
+- `./generated/models/dbtypes` or your configured generated-types path
+  PostgreSQL wrapper types when `PostgreSQL.GeneratedTypes` is enabled
+
+If `OutPackagePath` is omitted, `gormdb2struct` will try to derive it from the current Go module when it needs to emit importable generated files like `DbInit`.
+
+## Generated `DbInit`
+
+`DbInit` generation is optional and controlled by the `[DbInit]` section.
+
+When enabled, generated init code can:
+- open the database connection for the selected dialect
+- register default query objects
+- optionally run `AutoMigrate`
+- optionally register database settings with `github.com/dan-sherwin/go-app-settings`
+- optionally use `github.com/orandin/slog-gorm` as the GORM logger
+
+`DbInit` returns an error instead of panicking or exiting, so the parent application stays in control.
+
+## PostgreSQL `pgtypes`
+
+The repo also ships a reusable `pgtypes` package for PostgreSQL array and interval handling.
+
+It includes support for types like:
+- `pgtypes.StringArray`
+- `pgtypes.BoolArray`
+- `pgtypes.Int32Array`
+- `pgtypes.Int64Array`
+- `pgtypes.Float64Array`
+- `pgtypes.UUIDArray`
+- `pgtypes.TimeArray`
+- `pgtypes.Duration`
+- `pgtypes.DurationArray`
+
+This package is useful even outside the generator if you want GORM-friendly wrappers for PostgreSQL array and interval columns.
 
 ## Architecture
 
-- `cmd/main.go` is the single CLI entrypoint and release build target
-- `cmd/app` owns CLI parsing, version/build metadata, and structured logging
-- `internal/config` owns TOML decoding, normalization, defaults, and validation
-- `internal/generator` owns generation orchestration, dialect handling, cleanup, and DbInit emission
-- `pgtypes` remains the public PostgreSQL custom type package for generated projects
-- The CLI is intentionally stateless: no persistent settings, no hidden local app database, and no working-directory side effects
+- `cmd/main.go`
+  Single executable entrypoint
+- `cmd/app`
+  CLI parsing, top-level command dispatch, logging, and version/build metadata
+- `internal/config`
+  Config loading, normalization, validation, and sample generation
+- `internal/generator`
+  Schema inspection, generation orchestration, dialect handling, and emitted-file logic
+- `pgtypes`
+  Public PostgreSQL helper types for generated projects
 
----
+The tool is intentionally stateless. There are no persistent settings and no hidden local project database.
 
-## Generated Code Layout
+## Development
 
-Given OutPath = "./generated":
-- ./generated/models: structs for your tables with tags
-- ./generated: query code via gorm.io/gen and a `db.go`/`db_sqlite.go` initializer when enabled
-- The package name equals the base directory of OutPath (e.g., "generated")
-- If `OutPackagePath` is omitted, the generator will try to derive the import path from the current Go module before writing `DbInit`
+The local quality gate lives at:
 
-### Using the generated package
-
-- Import the package in your app (module path depends on your project):
-
-```
-import (
-  g "your/module/path/generated"
-  m "your/module/path/generated/models"
-)
+```bash
+./dev/ci-local.sh
 ```
 
-- Initialize the database:
-  - PostgreSQL: `g.DbInit()` returns an error and accepts an optional DSN override string; if omitted, a DSN is built from the configured PostgreSQL host/port/name/user/password/SSL mode via `github.com/dan-sherwin/go-utilities`.
-  - SQLite: `g.DbInit()` returns an error and accepts an optional file path override string; if omitted, DbPath from the generated file is used.
-  - If `DbInit.GenerateAppSettingsRegistration = true`, the generated init file also registers DB settings with `github.com/dan-sherwin/go-app-settings`.
-  - If `DbInit.UseSlogGormLogger = true`, the generated init file configures GORM with `github.com/orandin/slog-gorm`.
+That script runs formatting checks, build, vet, tests, lint, and `govulncheck`.
 
-- Perform operations with GORM using `g.DB`:
+## Roadmap
 
-```
-if err := g.DbInit(); err != nil { /* handle */ }
+Current support is focused on PostgreSQL and SQLite.
 
-var rec m.YourModel
-if err := g.DB.First(&rec).Error; err != nil { /* handle */ }
-```
+Additional GORM dialects are planned for future releases, with likely expansion in this order:
+- MySQL
+- TiDB
+- GaussDB
+- SQL Server
+- ClickHouse
+- Oracle
 
-- If `DbInit.IncludeAutoMigrate = true`, the generated DbInit will call AutoMigrate for all models.
-
----
-
-## PostgreSQL Custom Types (pgtypes)
-
-The `pgtypes` package provides GORM-compatible custom types for PostgreSQL features that are not natively handled by GORM or standard Go types. These are especially useful when working with PostgreSQL arrays and intervals.
-
-### Implemented Types
-
-The following Go types are implemented in the `pgtypes` package:
-
-- `pgtypes.StringArray`: A slice of `string` for PostgreSQL `text[]`, `varchar[]`.
-- `pgtypes.BoolArray`: A slice of `bool` for PostgreSQL `boolean[]`.
-- `pgtypes.Int32Array`: A slice of `int32` for PostgreSQL `integer[]`, `int4[]`.
-- `pgtypes.Int64Array`: A slice of `int64` for PostgreSQL `bigint[]`, `int8[]`.
-- `pgtypes.Float64Array`: A slice of `float64` for PostgreSQL `float8[]`, `double precision[]`.
-- `pgtypes.UUIDArray`: A slice of `uuid.UUID` for PostgreSQL `uuid[]` (using `github.com/google/uuid`).
-- `pgtypes.TimeArray`: A slice of `time.Time` for PostgreSQL `timestamptz[]`, `timestamp[]`.
-- `pgtypes.Duration`: A wrapper around `time.Duration` for PostgreSQL `interval`.
-- `pgtypes.DurationArray`: A slice of `pgtypes.Duration` for PostgreSQL `interval[]`.
-
-### Supported PostgreSQL Mappings
-
-| PostgreSQL Type | `pgtypes` Go Type | Description |
-|-----------------|-------------------|-------------|
-| `text[]`, `varchar[]` | `pgtypes.StringArray` | Array of strings |
-| `boolean[]` | `pgtypes.BoolArray` | Array of booleans |
-| `integer[]`, `int4[]` | `pgtypes.Int32Array` | Array of 32-bit integers |
-| `bigint[]`, `int8[]` | `pgtypes.Int64Array` | Array of 64-bit integers |
-| `float8[]`, `double precision[]` | `pgtypes.Float64Array` | Array of 64-bit floats |
-| `uuid[]` | `pgtypes.UUIDArray` | Array of UUIDs |
-| `timestamptz[]`, `timestamp[]` | `pgtypes.TimeArray` | Array of timestamps |
-| `interval` | `pgtypes.Duration` | Postgres interval string to `time.Duration` |
-| `interval[]` | `pgtypes.DurationArray` | Array of intervals |
-
-### Using pgtypes as a Separate Dependency
-
-You can use the `pgtypes` package in your own Go projects even if you are not using the `gormdb2struct` generator.
-
-1. Add the module to your project:
-   ```bash
-   go get github.com/dan-sherwin/gormdb2struct/pgtypes
-   ```
-
-2. Import and use the types in your structs:
-   ```go
-   import "github.com/dan-sherwin/gormdb2struct/pgtypes"
-
-   type User struct {
-       ID    uint
-       Tags  pgtypes.StringArray `gorm:"type:text[]"`
-       Roles pgtypes.StringArray `gorm:"type:text[]"`
-   }
-   ```
-
-These types implement the `sql.Scanner` and `driver.Valuer` interfaces, as well as `json.Marshaler` and `json.Unmarshaler`.
-
----
-
-## Advanced: Type Mapping
-
-- `Generator.Objects` is the preferred list of database objects to generate from. In legacy unversioned configs, `Tables` and `MaterializedViews` are still accepted and merged into the canonical object list.
-- `TypeMap` maps a database type (for example `jsonb`, `uuid`, `ticket_status`, `my_domain`, `ticket_type[]`) to the Go type string used in the generated struct.
-- In legacy unversioned configs, `DomainTypeMap` is still accepted and merged into the canonical type map.
-- SQLite type handling is provided in `sqlitetype/TypeMap`.
-- `PostgreSQL.GeneratedTypes` is PostgreSQL-only; SQLite uses `TypeMap` overrides but does not support generated enum/domain wrapper types.
-- `inspect` reuses your config file, scans the selected PostgreSQL objects, and reports unmapped enums, domains, enum arrays, and custom types.
-- `gormdb2struct inspect <config> --format toml` prints a paste-ready snippet with recommended `[PostgreSQL.GeneratedTypes.TypeMap]` entries and commented manual `[TypeMap]` placeholders for anything the generator cannot synthesize yet.
-- `gormdb2struct inspect-postgresql ...` always prints the human-readable inspection report to stdout.
-- If `-o/--out` is omitted, `inspect-postgresql` prints only the inspection report.
-- `gormdb2struct inspect-postgresql ... -o stdout` prints the generated starter TOML to stdout after the inspection report.
-- `gormdb2struct inspect-postgresql ... -o starter.toml` writes the full starter `ConfigVersion = 1` TOML to a file using the supplied PostgreSQL connection settings, discovered objects, and recommended generated type mappings.
-- `inspect-postgresql` supports `--password`, `--password-env`, `--password-stdin`, and `--password-prompt`. These are mutually exclusive so you can choose the safest input method for your environment.
-- `inspect-postgresql --import-package <pkg>` lets the inspector scan exported type names from one or more Go packages and prefer concrete `TypeMap` mappings like `sl_datatypes.SpacelinkIdentifier` over generated wrapper types when there is a unique name match.
-
----
-
-## Testing
-
-The repository includes an end-to-end SQLite test `TestEndToEndSQLite` which:
-- Creates a temporary SQLite DB with a schema that exercises the type map and relations
-- Runs the generator
-- Builds and runs a small program using the generated package to exercise CRUD
-- Cleans up after itself
-
-There is also a template-generation test for PostgreSQL `DbInit` output so the generated initializer stays compile-oriented and deterministic.
-
-Run tests:
-
-```
-go test ./...
-```
-
-To skip the E2E test in quick runs:
-
-```
-go test -short ./...
-```
-
----
-
-## Troubleshooting
-- Ensure your database is reachable and credentials are correct.
-- For PostgreSQL, if you pass a custom DSN to `DbInit(dsn)`, it will override the default constructed DSN.
-- For SQLite, pass the database file path to `DbInit(path)` to override.
-- `DbInit` returns an error instead of panicking or exiting, so the parent app stays in control of error handling.
-- OutPath’s package name is derived from the directory name; ensure your imports use the correct module path.
-
----
-
-## License
-
-This project is licensed under the terms of the LICENSE file included in this repository.
-
----
+The long-term goal is not just more dialectors, but dialect-specific generation that stays honest about what each database can actually support.
 
 ## Contributing
 
-Issues and pull requests are welcome. Please include clear reproduction steps or tests where possible.
+Issues and pull requests are welcome. Clear reproduction steps, config samples, and tests are especially helpful.
 
----
+## License
 
-## Screenshots / Examples
-
-Contributions of example outputs or screenshots of generated structs and query helpers are welcome! Please share examples to help others understand the generated code structure and usage.
-
-
----
-
-## Releases and Packages
-
-This project uses GoReleaser to publish binaries for Linux, macOS (darwin), and Windows, for both amd64 and arm64, whenever you push a tag (vX.Y.Z).
-
-- Download prebuilt archives from the GitHub Releases page for your OS/arch.
-- Checksums (checksums.txt) are attached to each release.
-- Version metadata (version/commit/date) is embedded and visible via `gormdb2struct -version`.
-
-### Install via dnf/yum (RPM)
-
-Releases also include RPM packages built with nfpm, and a YUM/DNF repository is published to GitHub Pages.
-
-To enable `dnf install gormdb2struct` on your machine, add this repo file:
-
-Create /etc/yum.repos.d/gormdb2struct.repo with:
-
-```
-[gormdb2struct]
-name=gormdb2struct
-baseurl=https://dan-sherwin.github.io/yum/rpm/$basearch/
-enabled=1
-gpgcheck=0
-```
-
-Then run:
-
-```
-sudo dnf clean all
-sudo dnf makecache
-sudo dnf install gormdb2struct
-```
-
-Notes:
-- `$basearch` resolves to x86_64 or aarch64 automatically.
-- If you prefer to install directly from a downloaded RPM, you can still do:
-  - `sudo dnf install ./gormdb2struct_<version>_linux_amd64.rpm`
-
-Optional (recommended) GPG signing:
-- If you later enable RPM signing and publish your public key at `https://dan-sherwin.github.io/gormdb2struct/public.key`, change the repo to:
-```
-[gormdb2struct]
-name=gormdb2struct
-baseurl=https://dan-sherwin.github.io/gormdb2struct/rpm/$basearch/
-enabled=1
-gpgcheck=1
-gpgkey=https://dan-sherwin.github.io/public.key
-```
+This project is licensed under the terms of the `LICENSE` file in this repository.

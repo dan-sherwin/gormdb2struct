@@ -68,15 +68,15 @@ func handleTopLevelHelp(args []string) (bool, error) {
        %s inspect <config> [flags]
        %s inspect-postgresql [flags]
 
-Generate strongly typed GORM models and query helpers from an existing database schema.
+Generate GORM models, query helpers, and optional PostgreSQL wrapper types from an existing schema.
 
 Arguments:
   <config>    Path to the TOML configuration file.
 
 Commands:
-  generate-config-sample    Write a sample TOML configuration file.
-  inspect                   Inspect a PostgreSQL schema and recommend type mappings.
-  inspect-postgresql        Inspect PostgreSQL directly from connection flags and emit starter config guidance.
+  generate-config-sample    Write a commented starter TOML configuration file.
+  inspect                   Inspect PostgreSQL objects referenced by a config and recommend type mappings.
+  inspect-postgresql        Inspect PostgreSQL directly from connection flags and optionally emit a starter config.
 
 Flags:
   -h, --help                    Show context-sensitive help.
