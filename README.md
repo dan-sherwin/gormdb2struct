@@ -1,14 +1,14 @@
 # gormdb2struct
 
-`gormdb2struct` is a schema-first code generator for Go + GORM.
+`gormdb2struct` is a schema-first code generator for Go + GORM that emits typed `gorm.io/gen` query code.
 
 It connects to an existing PostgreSQL or SQLite database and generates:
 - GORM model structs
-- `gorm.io/gen` query helpers
+- typed `gorm.io/gen` query helpers
 - an optional `DbInit` file for the chosen dialect
 - optional PostgreSQL wrapper types for enums, domains, and enum arrays
 
-If your database schema is the source of truth and you are tired of hand-maintaining structs, query code, and custom type plumbing, this tool is built for that workflow.
+If your database schema is the source of truth and you are tired of hand-maintaining structs, `gorm.io/gen` query scaffolding, and custom type plumbing, this tool is built for that workflow.
 
 ## Why This Exists
 
@@ -33,6 +33,7 @@ It is especially useful for PostgreSQL-heavy codebases where enums and domains a
 ## Highlights
 
 - PostgreSQL and SQLite support today
+- Typed query generation via `gorm.io/gen`
 - Versioned, human-editable TOML configuration
 - Optional `DbInit` generation with app-settings and `slog-gorm` support
 - Unified `TypeMap` for standard types, enums, domains, and arrays

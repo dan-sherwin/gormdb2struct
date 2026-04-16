@@ -78,7 +78,7 @@ nfpms:
     package_name: gormdb2struct
     file_name_template: '{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}'
     homepage: https://github.com/dan-sherwin/gormdb2struct
-    description: Generate GORM models, query helpers, and PostgreSQL wrapper types from an existing schema.
+    description: Generate GORM models, typed gorm.io/gen query helpers, and PostgreSQL wrapper types from an existing schema.
     maintainer: Dan Sherwin
     license: MIT
     vendor: Dan Sherwin
@@ -88,7 +88,7 @@ nfpms:
       - cli-multiplatform
     bindir: /usr/bin
     rpm:
-      summary: Schema-first GORM model and query generator
+      summary: Schema-first GORM and gorm.io/gen generator
       group: Development/Tools
 
 release:
@@ -104,7 +104,7 @@ homebrew_casks:
       branch: main
       token: "{{ .Env.HOMEBREW_TAP_GITHUB_TOKEN }}"
     homepage: https://github.com/dan-sherwin/gormdb2struct
-    description: "Generate GORM models, query helpers, and PostgreSQL wrapper types from an existing schema."
+    description: "Generate GORM models, typed gorm.io/gen query helpers, and PostgreSQL wrapper types from an existing schema."
     license: MIT
     commit_author:
       name: GoReleaser Bot
